@@ -1,0 +1,29 @@
+version: '3'
+
+volumes:
+  bundle:
+
+services:
+  app:
+    image: ruby
+    environment:
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "8080:8080" # http
+    working_dir: /usr/src/app
+    volumes:
+      - ./:/usr/src/app
+      - bundle:/usr/local/bundle
+    depends_on:
+      - redis
+  redis:
+    image: redis:5-alpine
+
+  frontend:
+    image: node
+    ports:
+      - "8081:8081"
+    working_dir: /usr/src/app
+    volumes:
+      - ./frontend/:/usr/src/app
+      - ./assets:/usr/src/app/build

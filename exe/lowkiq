@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+
+require 'lowkiq'
+
+options = Lowkiq::OptionParser.call ARGV
+server = Lowkiq::Server.build options
+
+Signal.trap('TERM') { server.stop }
+
+Signal.trap('INT') do
+  if server.stopped?
+    Process.exit
+  else
+    server.stop
+  end
+end
+
+Signal.trap('TTIN') do
+  file = "/tmp/lowkiq_ttin.txt"
+
+  File.delete file if File.exists? file
+
+  File.open(file, 'w') do |file|
+    Thread.list.each_with_index do |thread, idx|
+      file.write "== thread #{idx} == \n"
+      if thread.backtrace.nil?
+        file.write "<no backtrace available> \n"
+      else
+        thread.backtrace.each do |line|
+          file.write "#{line} \n"
+        end
+      end
+    end
+  end
+end
+
+begin
+  server.start
+  server.join
+rescue => ex
+  Lowkiq.last_words.call ex
+  raise ex
+end

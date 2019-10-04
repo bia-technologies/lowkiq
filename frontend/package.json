@@ -1,0 +1,43 @@
+{
+  "name": "lowkiq",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack",
+    "dumb": "webpack-dev-server --config webpack.config.dumb.js",
+    "web-api": "webpack-dev-server --config webpack.config.web-api.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^4.3.1",
+    "chart.js": "^2.7.3",
+    "classnames": "^2.2.6",
+    "human-duration": "^1.0.1",
+    "ky": "^0.5.1",
+    "lodash": "^4.17.11",
+    "react": "^16.6.1",
+    "react-chartjs-2": "^2.7.4",
+    "react-dom": "^16.6.1",
+    "react-router-dom": "^4.3.1",
+    "whatwg-fetch": "^3.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.1.5",
+    "@babel/preset-env": "^7.1.5",
+    "@babel/preset-react": "^7.0.0",
+    "autoprefixer": "^9.4.3",
+    "babel-loader": "^8.0.4",
+    "css-loader": "^1.0.1",
+    "cssnano": "^4.1.7",
+    "node-sass": "^4.11.0",
+    "postcss-loader": "^3.0.0",
+    "react-hot-loader": "^4.3.12",
+    "sass-loader": "^7.1.0",
+    "style-loader": "^0.23.1",
+    "webpack": "^4.25.1",
+    "webpack-cli": "^3.1.2",
+    "webpack-dev-server": "^3.1.10"
+  }
+}

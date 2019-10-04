@@ -1,0 +1,10 @@
+.table {
+    table-layout: fixed;
+}
+
+.table .label {
+    width: 110px;
+}
+
+.table .value {
+}

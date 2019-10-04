@@ -1,0 +1,20 @@
+.container {
+    width: 1rem;
+    height: 1rem;
+}
+
+.container.pulse {
+    animation: pulse 1s;
+}
+
+@keyframes pulse {
+    from {
+        box-shadow: 0 0 0 #212529;
+    }
+    50% {
+        box-shadow: 0 0 1rem #212529;
+    }
+    to {
+        box-shadow: 0 0 0 #212529;
+    }
+}
