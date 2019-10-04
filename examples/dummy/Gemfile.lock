@@ -10,7 +10,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     connection_pool (2.2.2)
-    rack (2.0.5)
+    rack (2.0.7)
     redis (4.1.0)
 
 PLATFORMS
