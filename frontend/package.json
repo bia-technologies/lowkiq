@@ -16,7 +16,7 @@
     "classnames": "^2.2.6",
     "human-duration": "^1.0.1",
     "ky": "^0.5.1",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.13",
     "react": "^16.6.1",
     "react-chartjs-2": "^2.7.4",
     "react-dom": "^16.6.1",
