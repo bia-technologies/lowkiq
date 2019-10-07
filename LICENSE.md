@@ -7,7 +7,7 @@ On granting a non-exclusive right to use open source software
 
 1.1. The Licensor provides the Licensee, in the manner and on the terms set forth in this Agreement, the right to use (license) **the Lowkiq open source software** (hereinafter - the "Software").
 
-1.2. The source code for the software is available on the website located in the Internet telecommunication network "Internet" at the address: https://github.com/bia-tech/lowkiq.
+1.2. The source code for the software is available on the website located in the Internet telecommunication network "Internet" at the address: https://github.com/bia-technologies/lowkiq.
 
 1.3. Software characteristics, that individualize it as a unique result of intellectual activity:
 

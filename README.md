@@ -6,17 +6,43 @@
 
 ![dashboard](doc/dashboard.png)
 
+* [Rationale](#rationale)
+* [Description](#description)
+* [Sidekiq](#sidekiq)
+* [Очередь](#%D0%BE%D1%87%D0%B5%D1%80%D0%B5%D0%B4%D1%8C)
+  + [Алгоритм расчета retry_count и perform_in](#%D0%B0%D0%BB%D0%B3%D0%BE%D1%80%D0%B8%D1%82%D0%BC-%D1%80%D0%B0%D1%81%D1%87%D0%B5%D1%82%D0%B0-retry_count-%D0%B8-perform_in)
+  + [Правило слияния задач](#%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%BE-%D1%81%D0%BB%D0%B8%D1%8F%D0%BD%D0%B8%D1%8F-%D0%B7%D0%B0%D0%B4%D0%B0%D1%87)
+* [Install](#install)
+* [Api](#api)
+* [Ring app](#ring-app)
+* [Настройка](#%D0%BD%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0)
+* [Запуск](#%D0%B7%D0%B0%D0%BF%D1%83%D1%81%D0%BA)
+* [Остановка](#%D0%BE%D1%81%D1%82%D0%B0%D0%BD%D0%BE%D0%B2%D0%BA%D0%B0)
+* [Debug](#debug)
+* [Development](#development)
+* [Исключения](#%D0%B8%D1%81%D0%BA%D0%BB%D1%8E%D1%87%D0%B5%D0%BD%D0%B8%D1%8F)
+* [Rails integration](#rails-integration)
+* [Splitter](#splitter)
+* [Scheduler](#scheduler)
+* [Рекомендации по настройке](#%D1%80%D0%B5%D0%BA%D0%BE%D0%BC%D0%B5%D0%BD%D0%B4%D0%B0%D1%86%D0%B8%D0%B8-%D0%BF%D0%BE-%D0%BD%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B5)
+  + [`SomeWorker.shards_count`](#someworkershards_count)
+  + [`SomeWorker.max_retry_count`](#someworkermax_retry_count)
+* [Изменение количества шардов воркера](#%D0%B8%D0%B7%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BA%D0%BE%D0%BB%D0%B8%D1%87%D0%B5%D1%81%D1%82%D0%B2%D0%B0-%D1%88%D0%B0%D1%80%D0%B4%D0%BE%D0%B2-%D0%B2%D0%BE%D1%80%D0%BA%D0%B5%D1%80%D0%B0)
+
 ## Rationale
 
 При использовании Sidekiq мы столкнулись с проблемами при обработке сообщений от сторонней системы.
+
+Скажем, сообщение представляет собой данные заказа в определенный момент времени.
+При изменении атрибутов или статуса отправляется новое сообщение сторонней системой.
+Заказы обновляются часто и в очереди рядом находятся сообщения, касающиеся одного и того же заказа.
 
 Sidekiq не гарантирует строгого порядка сообщений, т.к. очередь обрабатывается в несколько потоков.
 Например, пришло 2 сообщения: M1 и M2.
 Sidekiq обработчики начинают обрабатывать их параллельно,
 при этом M2 может обработаться раньше M1.
 
-В очереди могут находиться сообщения касающиеся одной сущности.
-Параллельная обработка таких сообщений приводит к:
+Параллельная обработка данных одного заказа приводит к:
 
 + dead locks
 + затиранию новых данных старыми
@@ -25,8 +51,10 @@ Lowkiq призван устранить эти проблемы, исключа
 
 ## Description
 
-Очереди надежны, т.е. задачи не теряются в случае внезапного падения процесса.
-Очереди хранятся в Redis и могут не успеть записаться на диск, в случае падения Redis.
+Очереди надежны. Lowkiq сохраняет данные об обрабатываемой задаче и при запуске переносит
+незавершенные задачи обратно в очередь.
+
+Задачи в очереди отсортированы по заданному времени исполнения, т.е. это не FIFO очереди.
 
 Каждая задача имеет идентификатор. Очереди гарантируют, что не может быть ситуации,
 когда несколько потоков обрабатывают задачи с одинаковыми идентификаторами.
@@ -38,34 +66,43 @@ Lowkiq призван устранить эти проблемы, исключа
 Это гарантирует порядок обработки задач с одинаковым идентификатором и исключает возможность блокировок.
 
 Кроме идентификатора задача имеет полезную нагрузку или данные задачи (payload).
-Задачи в очереди группируются по идентификатору.
+Для задач с одинаковым идентификаторм происходит слияние полезных нагрузок.
 Таким образом одновременно в обработку попадают все накопленные полезные нагрузки задачи.
-
-Если задачи содержат изменения сущности, то обработчик их все разом применит.
-Если задачи содержат снимки (версии) сущности, то обработчик может использовать только последнюю версию.
+Это полезно, если нужно обработать только последнее сообщение и отбросить все предыдущие.
 
 Каждой очереди соответствует воркер, содержащий логику обработки задачи.
-Для обработки задач используется фиксированное количество тредов,
-таким образом, добавление или удаление очереди/воркера не приводит к изменению числа тредов.
-Нет смысла задавать кол-во шардов одного воркера больше, чем общее кол-во тредов.
 
-## Аналоги
+Для обработки всех задач всех очередей используется фиксированное количество тредов.
+Добавление или удаление очередей или их шардов не приводит к изменению числа тредов.
 
-Lowkiq можно рассматривать, в некотором смысле, как замену sidekiq, работающему с плагинами:
+## Sidekiq
 
-+ [sidekiq-grouping](https://github.com/gzigzigzeo/sidekiq-grouping)
-+ [sidekiq-unique-jobs](https://github.com/mhenrixon/sidekiq-unique-jobs)
-+ [sidekiq-merger](https://github.com/dtaniwaki/sidekiq-merger)
+Если для ваших задач подходит Sidekiq - используйте его.
 
-## Benchmark
+Если вы используете плагины вроде
+[sidekiq-grouping](https://github.com/gzigzigzeo/sidekiq-grouping),
+[sidekiq-unique-jobs](https://github.com/mhenrixon/sidekiq-unique-jobs),
+[sidekiq-merger](https://github.com/dtaniwaki/sidekiq-merger)
+или реализуете собственный механизм блокировок, то стоит рассмотреть Lowkiq.
 
-5 threads, 100_000 blank jobs
+Например, sidekiq-grouping предварительно накапливает пачку задач, ставит ее в очередь и начинает накапливать следующую.
+При таком подходе случается ситуация, когда в очереди находятся 2 пачки с данными одного заказа.
+Эти пачки начинают обрабатываться одновременно разными тредами, что приводит к изначальной проблеме.
 
-+ lowkiq: 214 sec
-+ sidekiq: 29 sec
+Lowkiq изначально проектировался так, чтобы не использовать любые блокировки.
+
+Кроме того, в Lowkiq очереди изначально надежны. Только Sidekiq Pro или плагины добавляют такую функциональность.
 
 Этот [бенчмарк](examples/benchmark) показывает накладные расходы на взаимодействие с redis.
-В реальных задачах разница будет не так заметна.
+Для 5 threads, 100_000 blank jobs получились результаты:
+
++ lowkiq: 214 sec или 2,14 мс на задачу
++ sidekiq: 29 sec или 0.29 мс на задачу
+
+Эта разница связана с принципиально различным устройством очередей.
+Sidekiq использует один список для всех воркеров и извлекает задачу целиком за O(1).
+Lowkiq использует несколько типов данных, включая сортированные множества для хранения идентификаторов задач.
+Таким образом только получение идентификатора задачи занимает O(log(N)).
 
 ## Очередь
 
@@ -79,7 +116,7 @@ Lowkiq можно рассматривать, в некотором смысле
 `id` может быть, например, идентификатором реплицируемой сущности
 `payloads` - множество,
 получаемое в результате группировки полезной нагрузки задачи по `id` и отсортированное по ее `score`.
-`payload` может быть объектом, т.к. сериализуется с помощью `Marshal.dump`.
+`payload` может быть ruby объектом, т.к. сериализуется с помощью `Marshal.dump`.
 `score` может быть датой (unix timestamp) создания `payload`
 или ее монотонно увеличивающимся номером версии.
 По умолчанию - текущий unix timestamp.
@@ -87,18 +124,14 @@ Lowkiq можно рассматривать, в некотором смысле
 `retry_count` для новой необработанной задачи равен `-1`, для упавшей один раз - `0`,
 т.е. считаются не совершённые, а запланированные повторы.
 
-`score`, `perform_at` и `retry_count` вещественные из-за особенностей работы redis.
-
-> Redis sorted sets use a double 64-bit floating point number to represent the score. In all the architectures we support, this is represented as an IEEE 754 floating point number, that is able to represent precisely integer numbers between -(2^53) and +(2^53) included. In more practical terms, all the integers between -9007199254740992 and 9007199254740992 are perfectly representable. Larger integers, or fractions, are internally represented in exponential form, so it is possible that you get only an approximation of the decimal number, or of the very big integer, that you set as score.
-
 Выполнение задачи может закончиться неудачей.
-В этом случае ее `retry_count` инкрементируется и по заданной формуле вычисляется новый `perform_at`,
+В этом случае ее `retry_count` инкрементируется и по заданной формуле вычисляется новый `perform_in`,
 и она ставится обратно в очередь.
 
 В случае, когда `retry_count` становится `>=` `max_retry_count`
 элемент payloads с наименьшим(старейшим) score перемещается в морг,
 а оставшиеся элементы помещаются обратно в очередь, при этом
-`retry_count` и `perform_at` сбрасываются в `-1` и `now()` соответственно.
+`retry_count` и `perform_in` сбрасываются в `-1` и `now()` соответственно.
 
 ### Алгоритм расчета retry_count и perform_in
 
@@ -128,11 +161,11 @@ Lowkiq можно рассматривать, в некотором смысле
 + payloads объединяются, при этом выбирается минимальный score,
   т.е. для одинаковых payload выигрывает самая старая
 + если объединяется новая и задача из очереди,
-  то `perform_at` и `retry_count` берутся из задачи из очереди
+  то `perform_in` и `retry_count` берутся из задачи из очереди
 + если объединяется упавшая задача и задача из очереди,
-  то `perform_at` и `retry_count` берутся из упавшей
+  то `perform_in` и `retry_count` берутся из упавшей
 + если объединяется задача из морга и задача из очереди,
-  то `perform_at = now()`, `retry_count = -1`
+  то `perform_in = now()`, `retry_count = -1`
 
 Пример:
 
@@ -141,12 +174,12 @@ Lowkiq можно рассматривать, в некотором смысле
 # #{"v1": 1} - сортированное множество одного элемента, payload - "v1", score - 1
 
 # задача в очереди
-{ id: "1", payloads: #{"v1": 1, "v2": 2}, retry_count: 0, perform_at: 1536323288 }
+{ id: "1", payloads: #{"v1": 1, "v2": 2}, retry_count: 0, perform_in: 1536323288 }
 # добавляемая задача
-{ id: "1", payloads: #{"v2": 3, "v3": 4}, retry_count: -1, perform_at: 1536323290 }
+{ id: "1", payloads: #{"v2": 3, "v3": 4}, retry_count: -1, perform_in: 1536323290 }
 
 # результат
-{ id: "1", payloads: #{"v1": 1, "v2": 3, "v3": 4}, retry_count: 0, perform_at: 1536323288 }
+{ id: "1", payloads: #{"v1": 1, "v2": 3, "v3": 4}, retry_count: 0, perform_in: 1536323288 }
 ```
 
 Морг - часть очереди. Задачи в морге не обрабатываются.
@@ -157,9 +190,19 @@ Lowkiq можно рассматривать, в некотором смысле
 
 Задачи в морге можно отсортировать по дате изменения или id.
 
-Задачу из морга можно переместить в очередь. При этом для нее `retry_count = 0`, `perform_at = now()`.
+Задачу из морга можно переместить в очередь. При этом для нее `retry_count = 0`, `perform_in = now()`.
 
-### Api
+## Install
+
+```
+# Gemfile
+
+gem 'lowkiq'
+```
+
+Redis версии >= 3.2.
+
+## Api
 
 ```ruby
 module ATestWorker
@@ -173,7 +216,7 @@ module ATestWorker
     10 * (count + 1) # (i.e. 10, 20, 30, 40, 50)
   end
 
-  def self.perform(paylods_by_id)
+  def self.perform(payloads_by_id)
     # payloads_by_id - хеш
     payloads_by_id.each do |id, payloads|
       # id - идентификатор задачи
@@ -231,34 +274,6 @@ end
 ATestWorker.perform_async 1000.times.map { |id| { payload: {id: id} } }
 ```
 
-### Max retry count
-
-Исходя из `retry_in` и `max_retry_count`,
-можно вычислить примерное время, которая задача проведет в очереди.
-
-Для `retry_in`, заданного по умолчанию получается следующая таблица:
-
-```ruby
-def retry_in(retry_count)
-  (retry_count ** 4) + 15 + (rand(30) * (retry_count + 1))
-end
-```
-
-| `max_retry_count` | кол-во дней жизни задачи |
-| --- | --- |
-| 14 | 1 |
-| 16 | 2 |
-| 18 | 3 |
-| 19 | 5 |
-| 20 | 6 |
-| 21 | 8 |
-| 22 | 10 |
-| 23 | 13 |
-| 24 | 16 |
-| 25 | 20 |
-
-`(0...25).map{ |c| retry_in c }.sum / 60 / 60 / 24`
-
 ## Ring app
 
 `Lowkiq::Web` - ring app.
@@ -301,80 +316,41 @@ Lowkiq.server_middlewares << -> (worker, batch, &block) do
 end
 ```
 
-## Splitter
+## Запуск
 
-У каждого воркера есть несколько шардов:
+`lowkiq -r ./path_to_app`
 
-```
-# worker: shard ids
-worker A: 0, 1, 2
-worker B: 0, 1, 2, 3
-worker C: 0
-worker D: 0, 1
-```
+`path_to_app.rb` должен загрузить приложение. [Пример](examples/dummy/lib/app.rb).
 
-Lowkiq использует фиксированное кол-во тредов для обработки задач, следовательно нужно распределить шарды
-между тредами. Этим занимается Splitter.
+Ленивая загрузка модулей воркеров недопустима.
+Используйте для предварительной загрузки модулей
+`require` или [`require_dependency`](https://api.rubyonrails.org/classes/ActiveSupport/Dependencies/Loadable.html#method-i-require_dependency)
+для Ruby on Rails.
 
-Чтобы определить набор шардов, которые будет обрабатывать тред, поместим их в один список:
+## Остановка
 
-```
-A0, A1, A2, B0, B1, B2, B3, C0, D0, D1
-```
+Послать процессу TERM или INT (Ctrl-C).
+Процесс будет ждать завершения всех задач.
 
-Рассмотрим Default splitter, который равномерно распределяет шарды по тредам единственной ноды.
+Обратите внимание, если очередь пуста, процесс спит `poll_interval` секунд.
+Таким образом завершится не позднее чем через  `poll_interval` секунд.
 
-Если `threads_per_node` установлено в 3, то распределение будет таким:
+## Debug
+
+Получить trace всех тредов приложения:
 
 ```
-# thread id: shards
-t0: A0, B0, B3, D1
-t1: A1, B1, C0
-t2: A2, B2, D0
+kill -TTIN <pid>
+cat /tmp/lowkiq_ttin.txt
 ```
 
-Помимо Default есть ByNode splitter. Он позволяет распределить нагрузку по нескольким процессам (нодам).
-
-
-```
-Lowkiq.build_splitter = -> () do
-  Lowkiq.build_by_node_splitter(
-    ENV.fetch('LOWKIQ_NUMBER_OF_NODES').to_i,
-    ENV.fetch('LOWKIQ_NODE_NUMBER').to_i
-  )
-end
-```
-
-Таким образом, вместо одного процесса нужно запустить несколько и указать переменные окружения:
+## Development
 
 ```
-# process 0
-LOWKIQ_NUMBER_OF_NODES=2 LOWKIQ_NODE_NUMBER=0 bundle exec lowkiq -r ./lib/app.rb
-
-# process 1
-LOWKIQ_NUMBER_OF_NODES=2 LOWKIQ_NODE_NUMBER=1 bundle exec lowkiq -r ./lib/app.rb
-```
-
-Отмечу, что общее количество тредов будет равно произведению `ENV.fetch('LOWKIQ_NUMBER_OF_NODES')` и  `Lowkiq.threads_per_node`.
-
-Вы можете написать свой сплиттер, если ваше приложение требует особого распределения шардов между тредами или нодами.
-
-## Scheduler
-
-Каждый тред обрабатывает набор шардов. За выбор шарда для обработки отвечает планировщик.
-Каждый поток имеет свой собственный экземпляр планировщика.
-
-Lowkiq имеет 2 планировщика на выбор.
-Первый, `Seq` - последовательно перебирает шарды.
-Второй, `Lag` - выбирает шард с самой старой задачей, т.е. стремится минимизировать лаг.
-Используется по умолчанию.
-
-Планировщик задается через настройки:
-
-```
-Lowkiq.build_scheduler = ->() { Lowkiq.build_seq_scheduler }
-# или
-Lowkiq.build_scheduler = ->() { Lowkiq.build_lag_scheduler }
+docker-compose run --rm --service-port app bash
+bundler
+rspec
+cd examples/dummy ; bundle exec ../../exe/lowkiq -r ./lib/app.rb
 ```
 
 ## Исключения
@@ -387,98 +363,6 @@ Lowkiq.build_scheduler = ->() { Lowkiq.build_lag_scheduler }
 
 `StandardError` выброшенные вне воркера передаются в `Lowkiq.last_words`.
 Например это происходит при потере соединения к Redis или при ошибке в коде Lowkiq.
-
-## Изменение количества шардов воркера
-
-Старайтесь не менять кол-во шардов.
-
-Если вы можете отключить добавление новых заданий,
-то дождитесь опустошения очередей и выкатите новую версию кода с измененным кол-вом шардов.
-
-Если такой возможности нет, воспользуйтесь следующим сценарием.
-
-Например, есть воркер:
-
-```ruby
-module ATestWorker
-  extend Lowkiq::Worker
-
-  self.shards_count = 5
-
-  def self.perform(payloads_by_id)
-    some_code
-  end
-end
-```
-
-Теперь нужно указать новое кол-во шардов и задать новое имя очереди:
-
-```ruby
-module ATestWorker
-  extend Lowkiq::Worker
-
-  self.shards_count = 10
-  self.queue_name = "#{self.name}_V2"
-
-  def self.perform(payloads_by_id)
-    some_code
-  end
-end
-```
-
-И добавить воркер, перекладывающий задачи из старой очереди в новую:
-
-```ruby
-module ATestMigrationWorker
-  extend Lowkiq::Worker
-
-  self.shards_count = 5
-  self.queue_name = "ATestWorker"
-
-  def self.perform(payloads_by_id)
-    jobs = payloads_by_id.each_with_object([]) do |(id, payloads), acc|
-      payloads.each do |payload|
-        acc << { id: id, payload: payload }
-      end
-    end
-
-    ATestWorker.perform_async jobs
-  end
-end
-```
-
-## Запуск
-
-`lowkiq -r ./path_to_app`
-
-`path_to_app.rb` должен загрузить приложение.
-Ленивая загрузка модулей воркеров недопустима.
-
-Redis версии >= 3.2.
-
-## Остановка
-
-Послать процессу TERM или INT(Ctrl-C).
-Процесс будет ждать завершения всех задач.
-Обратите внимание, если очередь пуста, то на время завершения влияет величина `poll_interval`.
-
-## Development
-
-```
-docker-compose run --rm --service-port app bash
-bundler
-rspec
-cd examples/dummy ; bundle exec ../../exe/lowkiq -r ./lib/app.rb
-```
-
-## Debug
-
-Получить trace всех тредов приложения:
-
-```
-kill -TTIN <pid>
-cat /tmp/lowkiq_ttin.txt
-```
 
 ## Rails integration
 
@@ -577,3 +461,185 @@ end
 ```
 
 Запуск: `bundle exec lowkiq -r ./config/environment.rb`
+
+## Splitter
+
+У каждого воркера есть несколько шардов:
+
+```
+# worker: shard ids
+worker A: 0, 1, 2
+worker B: 0, 1, 2, 3
+worker C: 0
+worker D: 0, 1
+```
+
+Lowkiq использует фиксированное кол-во тредов для обработки задач, следовательно нужно распределить шарды
+между тредами. Этим занимается Splitter.
+
+Чтобы определить набор шардов, которые будет обрабатывать тред, поместим их в один список:
+
+```
+A0, A1, A2, B0, B1, B2, B3, C0, D0, D1
+```
+
+Рассмотрим Default splitter, который равномерно распределяет шарды по тредам единственной ноды.
+
+Если `threads_per_node` установлено в 3, то распределение будет таким:
+
+```
+# thread id: shards
+t0: A0, B0, B3, D1
+t1: A1, B1, C0
+t2: A2, B2, D0
+```
+
+Помимо Default есть ByNode splitter. Он позволяет распределить нагрузку по нескольким процессам (нодам).
+
+```
+Lowkiq.build_splitter = -> () do
+  Lowkiq.build_by_node_splitter(
+    ENV.fetch('LOWKIQ_NUMBER_OF_NODES').to_i,
+    ENV.fetch('LOWKIQ_NODE_NUMBER').to_i
+  )
+end
+```
+
+Таким образом, вместо одного процесса нужно запустить несколько и указать переменные окружения:
+
+```
+# process 0
+LOWKIQ_NUMBER_OF_NODES=2 LOWKIQ_NODE_NUMBER=0 bundle exec lowkiq -r ./lib/app.rb
+
+# process 1
+LOWKIQ_NUMBER_OF_NODES=2 LOWKIQ_NODE_NUMBER=1 bundle exec lowkiq -r ./lib/app.rb
+```
+
+Отмечу, что общее количество тредов будет равно произведению `ENV.fetch('LOWKIQ_NUMBER_OF_NODES')` и  `Lowkiq.threads_per_node`.
+
+Вы можете написать свой сплиттер, если ваше приложение требует особого распределения шардов между тредами или нодами.
+
+## Scheduler
+
+Каждый тред обрабатывает набор шардов. За выбор шарда для обработки отвечает планировщик.
+Каждый поток имеет свой собственный экземпляр планировщика.
+
+Lowkiq имеет 2 планировщика на выбор.
+Первый, `Seq` - последовательно перебирает шарды.
+Второй, `Lag` - выбирает шард с самой старой задачей, т.е. стремится минимизировать лаг.
+Используется по умолчанию.
+
+Планировщик задается через настройки:
+
+```
+Lowkiq.build_scheduler = ->() { Lowkiq.build_seq_scheduler }
+# или
+Lowkiq.build_scheduler = ->() { Lowkiq.build_lag_scheduler }
+```
+
+## Рекомендации по настройке
+
+### `SomeWorker.shards_count`
+
+Сумма `shards_count` всех воркеров не должна быть меньше `Lowkiq.threads_per_node`
+иначе треды будут простаивать.
+
+Сумма `shards_count` всех воркеров может быть равна `Lowkiq.threads_per_node`.
+В этом случае тред обрабатывает единственный шард. Это имеет смысл только при равномерной нагрузке на очереди.
+
+Сумма `shards_count` всех воркеров может быть больше `Lowkiq.threads_per_node`.
+В этом случае `shards_count` можно рассматривать в качестве приоритета.
+Чем он выше, тем чаще задачи этой очереди будут обрабатываться.
+
+Нет смысла устанавливать `shards_count` одного воркера больше чем `Lowkiq.threads_per_node`,
+т.к. каждый тред будет обрабатывать более одного шарда этой очереди, что увеличит накладные расходы.
+
+### `SomeWorker.max_retry_count`
+
+Исходя из `retry_in` и `max_retry_count`,
+можно вычислить примерное время, которая задача проведет в очереди.
+Под задачей тут понимается payload задачи.
+После достижения `max_retry_count` в морг переносится только payload с минимальным score.
+
+Для `retry_in`, заданного по умолчанию получается следующая таблица:
+
+```ruby
+def retry_in(retry_count)
+  (retry_count ** 4) + 15 + (rand(30) * (retry_count + 1))
+end
+```
+
+| `max_retry_count` | кол-во дней жизни задачи |
+| --- | --- |
+| 14 | 1 |
+| 16 | 2 |
+| 18 | 3 |
+| 19 | 5 |
+| 20 | 6 |
+| 21 | 8 |
+| 22 | 10 |
+| 23 | 13 |
+| 24 | 16 |
+| 25 | 20 |
+
+`(0...25).map{ |c| retry_in c }.sum / 60 / 60 / 24`
+
+
+## Изменение количества шардов воркера
+
+Старайтесь сразу расчитать количество шардов и не именять их количество в будущем.
+
+Если вы можете отключить добавление новых заданий,
+то дождитесь опустошения очередей и выкатите новую версию кода с измененным количеством шардов.
+
+Если такой возможности нет, воспользуйтесь следующим сценарием.
+
+Например, есть воркер:
+
+```ruby
+module ATestWorker
+  extend Lowkiq::Worker
+
+  self.shards_count = 5
+
+  def self.perform(payloads_by_id)
+    some_code
+  end
+end
+```
+
+Теперь нужно указать новое кол-во шардов и задать новое имя очереди:
+
+```ruby
+module ATestWorker
+  extend Lowkiq::Worker
+
+  self.shards_count = 10
+  self.queue_name = "#{self.name}_V2"
+
+  def self.perform(payloads_by_id)
+    some_code
+  end
+end
+```
+
+И добавить воркер, перекладывающий задачи из старой очереди в новую:
+
+```ruby
+module ATestMigrationWorker
+  extend Lowkiq::Worker
+
+  self.shards_count = 5
+  self.queue_name = "ATestWorker"
+
+  def self.perform(payloads_by_id)
+    jobs = payloads_by_id.each_with_object([]) do |(id, payloads), acc|
+      payloads.each do |payload|
+        acc << { id: id, payload: payload }
+      end
+    end
+
+    ATestWorker.perform_async jobs
+  end
+end
+```
