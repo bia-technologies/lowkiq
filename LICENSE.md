@@ -129,5 +129,5 @@ TIN/ 7810385714
 RRC/ 781001001
 
 Name and email address of the representative:<br>
-Pryalkin Andrey Yuryevich<br>
-Andrey.Pryalkin@bia-tech.ru<br>
+Mikhail Kuzmin<br>
+Mihail.Kuzmin@bia-tech.ru<br>
