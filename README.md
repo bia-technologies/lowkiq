@@ -120,10 +120,10 @@ By default `score` and `perform_in` are current unix timestamp.
 `retry_count` for new unprocessed job equals to `-1`,
 for one-time failed is `0`, so the planned retries are counted, not the performed ones.
 
-A job execution can be unsuccessful. In this case, its `retry_count` is incremented, new `perform_at` is calculated with determined formula and it moves back to a queue.
+A job execution can be unsuccessful. In this case, its `retry_count` is incremented, new `perform_in` is calculated with determined formula and it moves back to a queue.
 
 In case of `retry_count` is getting `>=` `max_retry_count` an element of `payloads` with less (oldest) score is moved to a morgue,
-rest elements are moved back to the queue, wherein `retry_count` and `perform_at` are reset to `-1` and `now()` respectively.
+rest elements are moved back to the queue, wherein `retry_count` and `perform_in` are reset to `-1` and `now()` respectively.
 
 ### Calculation algorithm for `retry_count` and `perform_in`
 
@@ -151,9 +151,9 @@ They are applied when:
 Algorithm:
 
 + payloads is merged, minimal score is chosen for equal payloads
-+ if a new job and queued job is merged, `perform_at` and `retry_count` is taken from the the job from the queue
-+ if a failed job and queued job is merged, `perform_at` and `retry_count` is taken from the failed one
-+ if morgue job and queued job is merged, `perform_at = now()`, `retry_count = -1`
++ if a new job and queued job is merged, `perform_in` and `retry_count` is taken from the the job from the queue
++ if a failed job and queued job is merged, `perform_in` and `retry_count` is taken from the failed one
++ if morgue job and queued job is merged, `perform_in = now()`, `retry_count = -1`
 
 Example:
 
@@ -162,12 +162,12 @@ Example:
 # #{"v1": 1} is a sorted set of a single element, the payload is "v1", the score is 1
 
 # a job is in a queue
-{ id: "1", payloads: #{"v1": 1, "v2": 2}, retry_count: 0, perform_at: 1536323288 }
+{ id: "1", payloads: #{"v1": 1, "v2": 2}, retry_count: 0, perform_in: 1536323288 }
 # a job which is being added
-{ id: "1", payloads: #{"v2": 3, "v3": 4}, retry_count: -1, perform_at: 1536323290 }
+{ id: "1", payloads: #{"v2": 3, "v3": 4}, retry_count: -1, perform_in: 1536323290 }
 
 # a resulted job in the queue
-{ id: "1", payloads: #{"v1": 1, "v2": 3, "v3": 4}, retry_count: 0, perform_at: 1536323288 }
+{ id: "1", payloads: #{"v1": 1, "v2": 3, "v3": 4}, retry_count: 0, perform_in: 1536323288 }
 ```
 
 Morgue is a part of the queue. Jobs in morgue are not processed.
@@ -176,7 +176,7 @@ A job in morgue has following attributes:
 + id is the job identifier
 + payloads
 
-A job from morgue can be moved back to the queue, `retry_count` = 0 and `perform_at = now()` would be set.
+A job from morgue can be moved back to the queue, `retry_count` = 0 and `perform_in = now()` would be set.
 
 ## Install
 
