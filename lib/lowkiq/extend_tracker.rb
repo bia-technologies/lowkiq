@@ -3,7 +3,7 @@ module Lowkiq
     def extended(mod)
       @extended_modules ||= []
       @extended_modules << mod
-      @extended_modules.sort_by! &:name
+      @extended_modules.sort_by!(&:name).uniq!
     end
 
     def extended_modules

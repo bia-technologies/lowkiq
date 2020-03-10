@@ -42,4 +42,4 @@ DEPENDENCIES
   rspec-mocks (~> 3.8)
 
 BUNDLED WITH
-   1.16.4
+   2.1.2
