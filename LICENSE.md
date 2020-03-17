@@ -1,3 +1,13 @@
+This software is dual-licensed under the LGPL version 3 or under the Licence Agreement.
+Recipients can choose the terms under which they want to use or distribute the
+software.
+
+Copyright © BIA-Technologies Limited Liability Company (OOO)
+
+# The LGPL Version 3 (LGPL-3.0)
+
+https://www.gnu.org/licenses/lgpl-3.0.html
+
 # Licence Agreement
 On granting a non-exclusive right to use open source software
 
