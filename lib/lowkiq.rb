@@ -95,6 +95,15 @@ module Lowkiq
         Lowkiq.threads_per_node,
       )
     end
+    
+    def enable_web_auth(username=ENV["LOWKIQ_AUTH_USERNAME"], password=ENV["LOWKIQ_AUTH_PASSWORD"])
+      if username && password
+        Lowkiq::Web::APP.use Rack::Auth::Basic do |usr, pwd|
+          ActiveSupport::SecurityUtils.secure_compare(::Digest::SHA256.hexdigest(usr), ::Digest::SHA256.hexdigest(username)) &
+            ActiveSupport::SecurityUtils.secure_compare(::Digest::SHA256.hexdigest(pwd), ::Digest::SHA256.hexdigest(password))
+        end
+      end
+    end
   end
 
   # defaults
