@@ -20,7 +20,7 @@ services:
     image: redis:5-alpine
 
   frontend:
-    image: node:12.16
+    image: node:12.16.3
     ports:
       - "8081:8081"
     working_dir: /usr/src/app
