@@ -1,6 +1,6 @@
 import React from 'react';
-import Num from '../util/num';
-import Duration from '../util/duration';
+import formatNumber from '../util/format-number';
+import formatDuration from '../util/format-duration';
 
 function Card({title, type, children}) {
   return (
@@ -18,14 +18,12 @@ function Card({title, type, children}) {
 export default function Total({ processed, failed, lag, busy, enqueued, fresh, retries, dead }) {
   return (
     <div className="card-group">
-      {/* <Card title="Processed"  type="success"   val={ processed } /> */}
-      {/* <Card title="Failed"     type="danger"    val={ failed } /> */}
-      <Card title="Lag"        type="secondary"><Duration val={ lag } /></Card>
-      <Card title="Busy"       type="secondary"><Num val={busy} /></Card>
-      <Card title="Enqueued"   type="secondary"><Num val={enqueued} /></Card>
-      <Card title="Fresh"      type="secondary"><Num val={fresh} /></Card>
-      <Card title="Retries"    type="secondary"><Num val={retries} /></Card>
-      <Card title="Dead"       type="secondary"><Num val={dead} /></Card>
+      <Card title="Lag"        type="secondary">{formatDuration(lag)}</Card>
+      <Card title="Busy"       type="secondary">{formatNumber(busy)}</Card>
+      <Card title="Enqueued"   type="secondary">{formatNumber(enqueued)}</Card>
+      <Card title="Fresh"      type="secondary">{formatNumber(fresh)}</Card>
+      <Card title="Retries"    type="secondary">{formatNumber(retries)}</Card>
+      <Card title="Dead"       type="secondary">{formatNumber(dead)}</Card>
     </div>
   );
 }

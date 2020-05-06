@@ -1,6 +1,4 @@
-import React from 'react';
-
-function formatToUnits(number) {
+export default function formatNumber(number) {
   if (number < 1000) return number;
 
   const abbrev = ['', 'K', 'M', 'B', 'T'];
@@ -9,8 +7,4 @@ function formatToUnits(number) {
   const suffix = abbrev[order];
 
   return (number / Math.pow(10, order * 3)).toPrecision(3) + suffix;
-}
-
-export default function Num({val}) {
-  return <span>{formatToUnits(val)}</span>;
 }

@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from "react-router-dom";
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
-import Num from '../util/num';
-import Duration from '../util/duration';
+import formatNumber from '../util/format-number';
+import formatDuration from '../util/format-duration';
 import {RoutesContext} from '../routes';
 
 function CamelCaseBreaker({val}) {
@@ -12,23 +13,49 @@ function CamelCaseBreaker({val}) {
     .reduce((acc, word) => acc.concat(word, <wbr key={word}/>), []);
 }
 
+function FormattedNumber({val}) {
+  return (
+    <OverlayTrigger overlay={<Tooltip>{val.toLocaleString()}</Tooltip>} >
+      <span>
+        {formatNumber(val)}
+      </span>
+    </OverlayTrigger>
+  );
+}
+
+function FormattedDuration({val}) {
+  return (
+    <OverlayTrigger overlay={<Tooltip>{val.toLocaleString()}</Tooltip>} >
+      <span>
+        {formatDuration(val)}
+      </span>
+    </OverlayTrigger>
+  );
+}
+
 function Row({name, lag, processed, failed, busy, enqueued, fresh, retries, dead, routes}) {
   return (
     <tr>
       <td><CamelCaseBreaker val={name}/></td>
-      <td><Num val={processed} /></td>
-      <td><Num val={failed} /></td>
-      <td><Duration val={lag} /></td>
+      <td>
+        <FormattedNumber val={processed} />
+      </td>
+      <td>
+        <FormattedNumber val={failed} />
+      </td>
+      <td>
+        <FormattedDuration val={lag} />
+      </td>
       <td>
         <Link to={routes.busy(name)}>
-          <Num val={busy} />
+          {formatNumber(busy)}
         </Link>
       </td>
       <td>
         <Link to={{
                 pathname: routes.enqueued(name)
               }}>
-          <Num val={enqueued} />
+          {formatNumber(enqueued)}
         </Link>
       </td>
       <td>
@@ -36,7 +63,7 @@ function Row({name, lag, processed, failed, busy, enqueued, fresh, retries, dead
                 pathname: routes.enqueued(name),
                 state: {selectedFilter: {retry_count: {min: '-inf', max: '-1', rev: true}}}
               }}>
-          <Num val={fresh} />
+          {formatNumber(fresh)}
         </Link>
       </td>
       <td>
@@ -44,12 +71,12 @@ function Row({name, lag, processed, failed, busy, enqueued, fresh, retries, dead
                 pathname: routes.enqueued(name),
                 state: {selectedFilter: {retry_count: {min: '0', max: '+inf', rev: false}}}
               }}>
-          <Num val={retries} />
+          {formatNumber(retries)}
         </Link>
       </td>
       <td>
         <Link to={routes.dead(name)}>
-          <Num val={dead} />
+          {formatNumber(dead)}
         </Link>
       </td>
     </tr>
