@@ -38,16 +38,13 @@ module Lowkiq
       def pop(shard, limit:)
         @pool.with do |redis|
           data = nil
-          tx = redis.watch @keys.ids_scored_by_perform_in_zset(shard) do
-            ids = redis.zrangebyscore @keys.ids_scored_by_perform_in_zset(shard),
-                                      0, @timestamp.call,
-                                      limit: [0, limit]
+          ids = redis.zrangebyscore @keys.ids_scored_by_perform_in_zset(shard),
+                                    0, @timestamp.call,
+                                    limit: [0, limit]
+          return [] if ids.empty?
 
-            if ids.empty?
-              redis.unwatch
-              return []
-            end
-
+          payloads_keys = ids.map { |id| @keys.payloads_zset id }
+          tx = redis.watch *payloads_keys do
             data = @fetch.fetch(redis, :pipelined, ids)
 
             redis.multi do
