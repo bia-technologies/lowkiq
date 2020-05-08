@@ -93,7 +93,7 @@ Furthermore, Lowkiq's queues are reliable. Only Sidekiq Pro or plugins can add s
 This [benchmark](examples/benchmark) shows overhead on redis usage.
 This is the results for 5 threads, 100,000 blank jobs:
 
-+ lowkiq: 214 sec or 2.14 ms per job
++ lowkiq: 173 sec or 1.73 ms per job
 + sidekiq: 29 sec or 0.29 ms per job
 
 This difference is related to different queues structure.
