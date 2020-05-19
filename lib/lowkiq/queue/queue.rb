@@ -152,6 +152,33 @@ module Lowkiq
         (0...@shards_count)
       end
 
+      def restore_shard_keys(prev_shards_count)
+        @pool.with do |redis|
+          (0...prev_shards_count).each do |curr_shard|
+            curr_shard_key = @keys.ids_scored_by_perform_in_zset(curr_shard)
+            job_list = redis.zrange curr_shard_key, 0, -1
+            job_list.each do |job_id|
+              new_shard = id_to_shard job_id
+              next if curr_shard == new_shard
+              new_shard_key = @keys.ids_scored_by_perform_in_zset(new_shard)
+              
+              redis.multi do 
+                score = redis.zscore curr_shard_key, job_id
+                redis.zadd new_shard_key, score, job_id
+                redis.zrem curr_shard_key, job_id
+              end
+            end
+            redis.del(curr_shard_key) unless shards.include?(curr_shard)#for shards_count < prev_shards_count
+
+            data = @queue.processing_data curr_shard
+            next if data.nil?
+            push_back data
+            ack curr_shard
+
+          end
+        end
+      end
+
       private
 
       def id_to_shard(id)

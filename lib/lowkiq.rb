@@ -95,6 +95,14 @@ module Lowkiq
         Lowkiq.threads_per_node,
       )
     end
+
+    def evaluate_all_workers
+      self.workers.each do |wrkr|
+        next unless wrkr.prev_shards_count && (wrkr.prev_shards_count != wrkr.shards_count)
+        wrkr.shard_migration
+      end
+    end
+
   end
 
   # defaults
@@ -108,4 +116,5 @@ module Lowkiq
   self.build_scheduler = ->() { Lowkiq.build_lag_scheduler }
   self.build_splitter = ->() { Lowkiq.build_default_splitter }
   self.last_words = ->(ex) {}
+  self.shards_count_changed? = ENV.fetch('SHARDS_COUNT_CHANGED', false)
 end

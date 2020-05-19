@@ -17,6 +17,7 @@ module Lowkiq
     end
 
     def start
+      Lowkiq.evaluate_all_workers if Lowkiq.shards_count_changed?  
       @shard_handlers_by_thread.each do |handlers|
         handlers.each(&:restore)
       end

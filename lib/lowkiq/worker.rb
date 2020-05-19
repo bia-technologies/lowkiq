@@ -3,6 +3,7 @@ module Lowkiq
     extend ExtendTracker
 
     attr_accessor :shards_count,
+                  :prev_shards_count,
                   :batch_size,
                   :max_retry_count,
                   :queue_name,
@@ -38,6 +39,10 @@ module Lowkiq
 
     def perform_async(batch)
       client_queue.push batch
+    end
+
+    def shard_migration
+      client_queue.restore_shard_keys self.prev_shards_count
     end
   end
 end
