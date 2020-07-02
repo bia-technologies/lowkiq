@@ -9,6 +9,7 @@ RSpec.describe Lowkiq::Queue::Queries do
   let(:queries) { Lowkiq::Queue::Queries.new redis_pool, queue_name }
 
   before(:each) { redis_pool.with(&:flushdb) }
+  before(:each) { redis_pool.with { |r| Lowkiq::Script.load! r } }
   before(:each) { $now = Lowkiq::Utils::Timestamp.now }
   before(:each) do
     allow(Lowkiq::Utils::Timestamp).to receive(:now) { $now }

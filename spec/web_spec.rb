@@ -19,6 +19,7 @@ RSpec.describe Lowkiq::Web do
   end
 
   before(:each) { Lowkiq.server_redis_pool.with(&:flushdb)  }
+  before(:each) { Lowkiq.server_redis_pool.with { |r| Lowkiq::Script.load! r } }
   before(:each) { ApiTestWorker.perform_async [ {id: 1, payload: "v1"} ] }
 
   it 'dashboard' do

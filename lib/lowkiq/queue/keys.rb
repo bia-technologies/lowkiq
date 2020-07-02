@@ -39,12 +39,24 @@ module Lowkiq
         [@prefix, :errors].join(':')
       end
 
-      def processing_key(shard)
-        [@prefix, :processing, shard].join(':')
-      end
-
       def processing_length_by_shard_hash
         [@prefix, :processing_length_by_shard].join(':')
+      end
+
+      def processing_ids_with_perform_in_hash(shard)
+        [@prefix, :processing, :ids_with_perform_in, shard].join(':')
+      end
+
+      def processing_ids_with_retry_count_hash(shard)
+        [@prefix, :processing, :ids_with_retry_count, shard].join(':')
+      end
+
+      def processing_payloads_zset(id)
+        [@prefix, :processing, :payloads, id].join(':')
+      end
+
+      def processing_errors_hash(shard)
+        [@prefix, :processing, :errors, shard].join(':')
       end
 
       def morgue_all_ids_lex_zset

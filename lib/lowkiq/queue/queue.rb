@@ -37,25 +37,37 @@ module Lowkiq
 
       def pop(shard, limit:)
         @pool.with do |redis|
-          data = nil
           ids = redis.zrangebyscore @keys.ids_scored_by_perform_in_zset(shard),
                                     0, @timestamp.call,
                                     limit: [0, limit]
           return [] if ids.empty?
 
-          payloads_keys = ids.map { |id| @keys.payloads_zset id }
-          tx = redis.watch *payloads_keys do
-            data = @fetch.fetch(redis, :multi, ids)
+          redis.multi do |redis|
+            redis.hset @keys.processing_length_by_shard_hash, shard, ids.length
 
-            redis.multi do
-              _delete redis, ids
-              redis.set  @keys.processing_key(shard), Marshal.dump_data(data)
-              redis.hset @keys.processing_length_by_shard_hash, shard, data.length
+            ids.each do |id|
+              redis.zrem @keys.all_ids_lex_zset, id
+              redis.zrem @keys.ids_scored_by_perform_in_zset(shard), id
+
+              Script.zremhset redis,
+                              @keys.all_ids_scored_by_perform_in_zset,
+                              @keys.processing_ids_with_perform_in_hash(shard),
+                              id
+              Script.zremhset redis,
+                              @keys.all_ids_scored_by_retry_count_zset,
+                              @keys.processing_ids_with_retry_count_hash(shard),
+                              id
+              redis.rename @keys.payloads_zset(id),
+                           @keys.processing_payloads_zset(id)
+              Script.hmove redis,
+                           @keys.errors_hash,
+                           @keys.processing_errors_hash(shard),
+                           id
             end
-          end until tx
-
-          data
+          end
         end
+
+        processing_data shard
       end
 
       def push_back(batch)
@@ -87,26 +99,51 @@ module Lowkiq
       end
 
       def ack(shard, data, result = nil)
-        length = data.length
+        ids = data.map { |job| job[:id] }
+        length = ids.length
 
         @pool.with do |redis|
           redis.multi do
-            redis.del  @keys.processing_key(shard)
+            redis.del @keys.processing_ids_with_perform_in_hash(shard)
+            redis.del @keys.processing_ids_with_retry_count_hash(shard)
+            redis.del @keys.processing_errors_hash(shard)
+            ids.each do |id|
+              redis.del @keys.processing_payloads_zset(id)
+            end
             redis.hdel @keys.processing_length_by_shard_hash, shard
-
             redis.incrby @keys.processed_key, length if result == :success
-            redis.incrby @keys.failed_key, length    if result == :fail
+            redis.incrby @keys.failed_key,    length if result == :fail
           end
         end
       end
 
       def processing_data(shard)
-        data = @pool.with do |redis|
-          redis.get @keys.processing_key(shard)
-        end
-        return [] if data.nil?
+        @pool.with do |redis|
+          ids_with_perform_in, ids_with_retry_count, errors = redis.pipelined do |redis|
+            redis.hgetall @keys.processing_ids_with_perform_in_hash(shard)
+            redis.hgetall @keys.processing_ids_with_retry_count_hash(shard)
+            redis.hgetall @keys.processing_errors_hash(shard)
+          end
+          ids = ids_with_perform_in.keys
 
-        Marshal.load_data data
+          return [] if ids.empty?
+
+          payloads = redis.pipelined do |redis|
+            ids.each do |id|
+              redis.zrange @keys.processing_payloads_zset(id), 0, -1, with_scores: true
+            end
+          end
+
+          ids.zip(payloads).map do |(id, payloads)|
+            {
+              id: id,
+              perform_in: ids_with_perform_in[id].to_f,
+              retry_count: ids_with_retry_count[id].to_f,
+              payloads: payloads.map { |(payload, score)| [Marshal.load_payload(payload), score] },
+              error: errors[id]
+            }.compact
+          end
+        end
       end
 
       def push_to_morgue(batch)
@@ -147,7 +184,15 @@ module Lowkiq
       def delete(ids)
         @pool.with do |redis|
           redis.multi do
-            _delete redis, ids
+            ids.each do |id|
+              shard = id_to_shard id
+              redis.zrem @keys.all_ids_lex_zset, id
+              redis.zrem @keys.all_ids_scored_by_perform_in_zset, id
+              redis.zrem @keys.all_ids_scored_by_retry_count_zset, id
+              redis.zrem @keys.ids_scored_by_perform_in_zset(shard), id
+              redis.del  @keys.payloads_zset(id)
+              redis.hdel @keys.errors_hash, id
+            end
           end
         end
       end
@@ -160,19 +205,6 @@ module Lowkiq
 
       def id_to_shard(id)
         Zlib.crc32(id.to_s) % @shards_count
-      end
-
-      def _delete(redis, ids)
-        redis.zrem @keys.all_ids_lex_zset, ids
-        redis.zrem @keys.all_ids_scored_by_perform_in_zset, ids
-        redis.zrem @keys.all_ids_scored_by_retry_count_zset, ids
-        redis.hdel @keys.errors_hash, ids
-
-        ids.each do |id|
-          shard = id_to_shard id
-          redis.zrem @keys.ids_scored_by_perform_in_zset(shard), id
-          redis.del  @keys.payloads_zset(id)
-        end
       end
     end
   end
