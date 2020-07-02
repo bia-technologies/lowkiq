@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    lowkiq (1.0.0)
+    lowkiq (1.0.4)
       connection_pool (~> 2.2, >= 2.2.2)
       rack (>= 1.5.0)
       redis (>= 4.0.1, < 5)
@@ -9,13 +9,13 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    connection_pool (2.2.2)
+    connection_pool (2.2.3)
     diff-lcs (1.3)
     rack (2.2.2)
     rack-test (1.1.0)
       rack (>= 1.0, < 3)
     rake (12.3.3)
-    redis (4.1.3)
+    redis (4.2.1)
     rspec (3.9.0)
       rspec-core (~> 3.9.0)
       rspec-expectations (~> 3.9.0)
@@ -42,4 +42,4 @@ DEPENDENCIES
   rspec-mocks (~> 3.8)
 
 BUNDLED WITH
-   2.1.2
+   2.1.4
