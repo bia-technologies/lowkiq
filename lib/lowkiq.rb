@@ -4,9 +4,11 @@ require "zlib"
 require "json"
 require "ostruct"
 require "optparse"
+require "digest"
 
 require "lowkiq/version"
 require "lowkiq/utils"
+require "lowkiq/script"
 
 require "lowkiq/extend_tracker"
 require "lowkiq/option_parser"
@@ -19,7 +21,6 @@ require "lowkiq/schedulers/seq"
 
 require "lowkiq/server"
 
-require "lowkiq/queue/marshal"
 require "lowkiq/queue/keys"
 require "lowkiq/queue/fetch"
 require "lowkiq/queue/queue"

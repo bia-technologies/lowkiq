@@ -17,6 +17,10 @@ module Lowkiq
     end
 
     def start
+      Lowkiq.server_redis_pool.with do |redis|
+        Script.load! redis
+      end
+
       @shard_handlers_by_thread.each do |handlers|
         handlers.each(&:restore)
       end
