@@ -60,18 +60,19 @@ module Lowkiq
 
       def push_back(batch)
         @pool.with do |redis|
-          batch.each do |job|
-            id          = job.fetch(:id)
-            perform_in  = job.fetch(:perform_in, @timestamp.call)
-            retry_count = job.fetch(:retry_count, -1)
-            payloads    = job.fetch(:payloads).map do |(payload, score)|
-              [score, Marshal.dump_payload(payload)]
-            end
-            error       = job.fetch(:error, nil)
+          timestamp = @timestamp.call
+          redis.multi do |redis|
+            batch.each do |job|
+              id          = job.fetch(:id)
+              perform_in  = job.fetch(:perform_in, timestamp)
+              retry_count = job.fetch(:retry_count, -1)
+              payloads    = job.fetch(:payloads).map do |(payload, score)|
+                [score, Marshal.dump_payload(payload)]
+              end
+              error       = job.fetch(:error, nil)
 
-            shard = id_to_shard id
+              shard = id_to_shard id
 
-            redis.multi do
               redis.zadd @keys.all_ids_lex_zset, 0, id
               redis.zadd @keys.all_ids_scored_by_perform_in_zset, perform_in, id
               redis.zadd @keys.all_ids_scored_by_retry_count_zset, retry_count, id
@@ -109,16 +110,18 @@ module Lowkiq
 
       def push_to_morgue(batch)
         @pool.with do |redis|
-          batch.each do |job|
-            id       = job.fetch(:id)
-            payloads = job.fetch(:payloads).map do |(payload, score)|
-              [score, Marshal.dump_payload(payload)]
-            end
-            error    = job.fetch(:error, nil)
+          timestamp = @timestamp.call
+          redis.multi do
+            batch.each do |job|
+              id       = job.fetch(:id)
+              payloads = job.fetch(:payloads).map do |(payload, score)|
+                [score, Marshal.dump_payload(payload)]
+              end
+              error    = job.fetch(:error, nil)
 
-            redis.multi do
+
               redis.zadd @keys.morgue_all_ids_lex_zset, 0, id
-              redis.zadd @keys.morgue_all_ids_scored_by_updated_at_zset, @timestamp.call, id
+              redis.zadd @keys.morgue_all_ids_scored_by_updated_at_zset, timestamp, id
               redis.zadd @keys.morgue_payloads_zset(id), payloads, nx: true
 
               redis.hset @keys.morgue_errors_hash, id, error unless error.nil?
