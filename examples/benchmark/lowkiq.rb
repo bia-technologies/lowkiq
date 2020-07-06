@@ -3,6 +3,9 @@
 
 $jobs_count = 100_000
 
+Lowkiq.build_scheduler = ->() { Lowkiq.build_seq_scheduler }
+Lowkiq.redis = ->() { Redis.new url: ENV.fetch('REDIS_URL'), driver: :hiredis }
+
 module Worker
   extend Lowkiq::Worker
 

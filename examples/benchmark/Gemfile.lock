@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    lowkiq (0.0.30)
+    lowkiq (1.0.4)
       connection_pool (~> 2.2, >= 2.2.2)
       rack (>= 1.5.0)
       redis (>= 4.0.1, < 5)
@@ -9,7 +9,8 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    connection_pool (2.2.2)
+    connection_pool (2.2.3)
+    hiredis (0.6.3)
     rack (2.0.7)
     rack-protection (2.0.7)
       rack
@@ -24,8 +25,9 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  hiredis
   lowkiq!
   sidekiq
 
 BUNDLED WITH
-   1.16.4
+   2.1.4

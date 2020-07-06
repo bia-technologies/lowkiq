@@ -16,6 +16,7 @@ Ordered background jobs processing
 * [Api](#api)
 * [Ring app](#ring-app)
 * [Configuration](#configuration)
+* [Performance](#performance)
 * [Execution](#execution)
 * [Shutdown](#shutdown)
 * [Debug](#debug)
@@ -93,8 +94,9 @@ Furthermore, Lowkiq's queues are reliable. Only Sidekiq Pro or plugins can add s
 This [benchmark](examples/benchmark) shows overhead on redis usage.
 This is the results for 5 threads, 100,000 blank jobs:
 
-+ lowkiq: 173 sec or 1.73 ms per job
-+ sidekiq: 29 sec or 0.29 ms per job
++ lowkiq: 155 sec or 1.55 ms per job
++ lowkiq +hiredis: 80 sec or 0.80 ms per job
++ sidekiq: 15 sec or 0.15 ms per job
 
 This difference is related to different queues structure.
 Sidekiq uses one list for all workers and fetches the job entirely for O(1).
@@ -299,6 +301,22 @@ Lowkiq.server_middlewares << -> (worker, batch, &block) do
     raise e
   end
 end
+```
+
+## Performance
+
+Use [hiredis](https://github.com/redis/hiredis-rb) for better performance.
+
+```ruby
+# Gemfile
+
+gem "hiredis"
+```
+
+```ruby
+# config
+
+Lowkiq.redis = ->() { Redis.new url: ENV.fetch('REDIS_URL'), driver: :hiredis }
 ```
 
 ## Execution
