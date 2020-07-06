@@ -45,7 +45,7 @@ module Lowkiq
 
           payloads_keys = ids.map { |id| @keys.payloads_zset id }
           tx = redis.watch *payloads_keys do
-            data = @fetch.fetch(redis, :pipelined, ids)
+            data = @fetch.fetch(redis, :multi, ids)
 
             redis.multi do
               _delete redis, ids
