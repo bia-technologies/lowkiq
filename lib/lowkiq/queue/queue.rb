@@ -162,14 +162,15 @@ module Lowkiq
       end
 
       def _delete(redis, ids)
+        redis.zrem @keys.all_ids_lex_zset, ids
+        redis.zrem @keys.all_ids_scored_by_perform_in_zset, ids
+        redis.zrem @keys.all_ids_scored_by_retry_count_zset, ids
+        redis.hdel @keys.errors_hash, ids
+
         ids.each do |id|
           shard = id_to_shard id
-          redis.zrem @keys.all_ids_lex_zset, id
-          redis.zrem @keys.all_ids_scored_by_perform_in_zset, id
-          redis.zrem @keys.all_ids_scored_by_retry_count_zset, id
           redis.zrem @keys.ids_scored_by_perform_in_zset(shard), id
           redis.del  @keys.payloads_zset(id)
-          redis.hdel @keys.errors_hash, id
         end
       end
     end
