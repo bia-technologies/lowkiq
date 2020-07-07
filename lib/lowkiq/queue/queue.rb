@@ -42,7 +42,7 @@ module Lowkiq
                                     limit: [0, limit]
           return [] if ids.empty?
 
-          redis.multi do |redis|
+          res = redis.multi do |redis|
             redis.hset @keys.processing_length_by_shard_hash, shard, ids.length
 
             ids.each do |id|
@@ -64,10 +64,12 @@ module Lowkiq
                            @keys.processing_errors_hash(shard),
                            id
             end
+            processing_data_pipeline(redis, shard, ids)
           end
-        end
 
-        processing_data shard
+          res.shift 1 + ids.length * 6
+          processing_data_build res, ids
+        end
       end
 
       def push_back(batch)
@@ -119,30 +121,14 @@ module Lowkiq
 
       def processing_data(shard)
         @pool.with do |redis|
-          ids_with_perform_in, ids_with_retry_count, errors = redis.pipelined do |redis|
-            redis.hgetall @keys.processing_ids_with_perform_in_hash(shard)
-            redis.hgetall @keys.processing_ids_with_retry_count_hash(shard)
-            redis.hgetall @keys.processing_errors_hash(shard)
-          end
-          ids = ids_with_perform_in.keys
-
+          ids = redis.hkeys @keys.processing_ids_with_perform_in_hash(shard)
           return [] if ids.empty?
 
-          payloads = redis.pipelined do |redis|
-            ids.each do |id|
-              redis.zrange @keys.processing_payloads_zset(id), 0, -1, with_scores: true
-            end
+          res = redis.multi do |redis|
+            processing_data_pipeline redis, shard, ids
           end
 
-          ids.zip(payloads).map do |(id, payloads)|
-            {
-              id: id,
-              perform_in: ids_with_perform_in[id].to_f,
-              retry_count: ids_with_retry_count[id].to_f,
-              payloads: payloads.map { |(payload, score)| [Marshal.load_payload(payload), score] },
-              error: errors[id]
-            }.compact
-          end
+          processing_data_build res, ids
         end
       end
 
@@ -205,6 +191,33 @@ module Lowkiq
 
       def id_to_shard(id)
         Zlib.crc32(id.to_s) % @shards_count
+      end
+
+      def processing_data_pipeline(redis, shard, ids)
+        redis.hgetall @keys.processing_ids_with_perform_in_hash(shard)
+        redis.hgetall @keys.processing_ids_with_retry_count_hash(shard)
+        redis.hgetall @keys.processing_errors_hash(shard)
+
+        ids.each do |id|
+          redis.zrange @keys.processing_payloads_zset(id), 0, -1, with_scores: true
+        end
+      end
+
+      def processing_data_build(arr, ids)
+        ids_with_perform_in = arr.shift
+        ids_with_retry_count = arr.shift
+        errors = arr.shift
+        payloads = arr
+
+        ids.zip(payloads).map do |(id, payloads)|
+          {
+            id: id,
+            perform_in: ids_with_perform_in[id].to_f,
+            retry_count: ids_with_retry_count[id].to_f,
+            payloads: payloads.map { |(payload, score)| [Lowkiq.load_payload.call(payload), score] },
+            error: errors[id]
+          }.compact
+        end
       end
     end
   end
