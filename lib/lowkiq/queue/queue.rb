@@ -86,9 +86,10 @@ module Lowkiq
         end
       end
 
-      def ack(shard, result = nil)
+      def ack(shard, data, result = nil)
+        length = data.length
+
         @pool.with do |redis|
-          length = redis.hget(@keys.processing_length_by_shard_hash, shard).to_i
           redis.multi do
             redis.del  @keys.processing_key(shard)
             redis.hdel @keys.processing_length_by_shard_hash, shard

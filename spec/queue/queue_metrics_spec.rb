@@ -94,8 +94,8 @@ RSpec.describe Lowkiq::Queue::QueueMetrics do
             { id: '1', payload: 'v1' },
           ]
         )
-        queue.pop shard_index, limit: 10
-        queue.ack shard_index, :success
+        data = queue.pop shard_index, limit: 10
+        queue.ack shard_index, data, :success
 
         expect( queue_metrics.processed ).to be(1)
       end
@@ -106,8 +106,8 @@ RSpec.describe Lowkiq::Queue::QueueMetrics do
             { id: '1', payload: 'v1' },
           ]
         )
-        queue.pop shard_index, limit: 10
-        queue.ack shard_index, :fail
+        data = queue.pop shard_index, limit: 10
+        queue.ack shard_index, data, :fail
 
         expect( queue_metrics.failed ).to be(1)
       end

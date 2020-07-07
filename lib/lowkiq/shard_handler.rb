@@ -31,7 +31,7 @@ module Lowkiq
           @worker.perform batch
         end
 
-        @queue.ack @shard_index, :success
+        @queue.ack @shard_index, data, :success
         true
       rescue => ex
         fail! data, ex
@@ -39,7 +39,7 @@ module Lowkiq
 
         @queue.push_back back
         @queue.push_to_morgue morgue
-        @queue.ack @shard_index, :fail
+        @queue.ack @shard_index, data, :fail
         false
       end
     end
@@ -48,7 +48,7 @@ module Lowkiq
       data = @queue.processing_data @shard_index
       return if data.nil?
       @queue.push_back data
-      @queue.ack @shard_index
+      @queue.ack @shard_index, data
     end
 
     private

@@ -210,11 +210,11 @@ RSpec.describe Lowkiq::Queue::Queue do
           { id: '1', perform_in: $now - 10, payload: 'v1', score: $now },
         ]
       )
-      queue.pop shard_index, limit: 10
     end
+    let!(:data) { queue.pop shard_index, limit: 10 }
 
     it '#processing_data' do
-      expect { queue.ack shard_index }.to change { queue.processing_data(shard_index) }.to([])
+      expect { queue.ack shard_index, data }.to change { queue.processing_data(shard_index) }.to([])
     end
   end
 
