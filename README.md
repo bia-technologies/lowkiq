@@ -270,7 +270,7 @@ ATestWorker.perform_async 1000.times.map { |id| { payload: {id: id} } }
 
 ## Configuration
 
-Default options and values are:
+Options and their default values are:
 
 + `Lowkiq.poll_interval = 1` - delay in seconds between queue polling for new jobs.
    Used only if the queue was empty at previous cycle or error was occured.
@@ -283,6 +283,8 @@ Default options and values are:
 + `Lowkiq.build_scheduler = ->() { Lowkiq.build_lag_scheduler }` is a scheduler
 + `Lowkiq.build_splitter = ->() { Lowkiq.build_default_splitter }` is a splitter
 + `Lowkiq.last_words = ->(ex) {}` is an exception handler of descendants of `StandardError` caused the process stop
++ `Lowkiq.dump_payload = Marshal.method :dump`
++ `Lowkiq.load_payload = Marshal.method :load`
 
 ```ruby
 $logger = Logger.new(STDOUT)

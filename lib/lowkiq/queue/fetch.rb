@@ -21,7 +21,7 @@ module Lowkiq
             id: x[0],
             perform_in: x[1][0],
             retry_count: x[1][1],
-            payloads: x[1][2].map { |(payload, score)| [Marshal.load_payload(payload), score] },
+            payloads: x[1][2].map { |(payload, score)| [Lowkiq.load_payload.call(payload), score] },
             error: x[1][3],
           }.compact
         end.compact
@@ -41,7 +41,7 @@ module Lowkiq
           {
             id: x[0],
             updated_at: x[1][0],
-            payloads: x[1][1].map { |(payload, score)| [Marshal.load_payload(payload), score] },
+            payloads: x[1][1].map { |(payload, score)| [Lowkiq.load_payload.call(payload), score] },
             error: x[1][2],
           }.compact
         end.compact
