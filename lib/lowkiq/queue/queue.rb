@@ -210,6 +210,7 @@ module Lowkiq
         payloads = arr
 
         ids.zip(payloads).map do |(id, payloads)|
+          next if payloads.empty?
           {
             id: id,
             perform_in: ids_with_perform_in[id].to_f,
@@ -217,7 +218,7 @@ module Lowkiq
             payloads: payloads.map { |(payload, score)| [Lowkiq.load_payload.call(payload), score] },
             error: errors[id]
           }.compact
-        end
+        end.compact
       end
     end
   end
