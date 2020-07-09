@@ -40,7 +40,8 @@ module Lowkiq
                   :redis, :client_pool_size, :pool_timeout,
                   :server_middlewares, :on_server_init,
                   :build_scheduler, :build_splitter,
-                  :last_words
+                  :last_words,
+                  :dump_payload, :load_payload
 
     def server_redis_pool
       @server_redis_pool ||= ConnectionPool.new(size: threads_per_node, timeout: pool_timeout, &redis)
@@ -108,4 +109,6 @@ module Lowkiq
   self.build_scheduler = ->() { Lowkiq.build_lag_scheduler }
   self.build_splitter = ->() { Lowkiq.build_default_splitter }
   self.last_words = ->(ex) {}
+  self.dump_payload = ::Marshal.method :dump
+  self.load_payload = ::Marshal.method :load
 end
