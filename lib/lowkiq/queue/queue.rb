@@ -29,7 +29,7 @@ module Lowkiq
               redis.zadd @keys.all_ids_scored_by_retry_count_zset, retry_count, id, nx: true
 
               redis.zadd @keys.ids_scored_by_perform_in_zset(shard), perform_in, id, nx: true
-              redis.zadd @keys.payloads_zset(id), score, Marshal.dump_payload(payload), nx: true
+              redis.zadd @keys.payloads_zset(id), score, Lowkiq.dump_payload.call(payload), nx: true
             end
           end
         end
@@ -67,7 +67,7 @@ module Lowkiq
               perform_in  = job.fetch(:perform_in, timestamp)
               retry_count = job.fetch(:retry_count, -1)
               payloads    = job.fetch(:payloads).map do |(payload, score)|
-                [score, Marshal.dump_payload(payload)]
+                [score, Lowkiq.dump_payload.call(payload)]
               end
               error       = job.fetch(:error, nil)
 
@@ -116,7 +116,7 @@ module Lowkiq
             batch.each do |job|
               id       = job.fetch(:id)
               payloads = job.fetch(:payloads).map do |(payload, score)|
-                [score, Marshal.dump_payload(payload)]
+                [score, Lowkiq.dump_payload.call(payload)]
               end
               error    = job.fetch(:error, nil)
 
