@@ -28,6 +28,7 @@ module Lowkiq
 
     APP = Rack::Builder.new do
       map "/api" do
+        use Rack::ContentType, "application/json"
         run Api
       end
 
@@ -35,6 +36,7 @@ module Lowkiq
         run Rack::File.new ASSETS, { 'Cache-Control' => 'public, max-age=86400' }
       end
 
+      use Rack::ContentType, "text/html"
       run HTML
     end
 
