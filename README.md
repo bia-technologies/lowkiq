@@ -32,9 +32,9 @@ Ordered background jobs processing
 ## Rationale
 
 We've faced some problems using Sidekiq while processing messages from a side system.
-For instance, the message is a data of an order in particular time.
-The side system will send a new data of an order on an every change.
-Orders are frequently updated and a queue containts some closely located messages of the same order.
+For instance, the message is the data of an order at a particular time.
+The side system will send new data of an order on every change.
+Orders are frequently updated and a queue contains some closely located messages of the same order.
 
 Sidekiq doesn't guarantee a strict message order, because a queue is processed by multiple threads.
 For example, we've received 2 messages: M1 and M2.
@@ -43,8 +43,8 @@ so M2 can be processed before M1.
 
 Parallel processing of such kind of messages can result in:
 
-+ dead locks
-+ overwriting new data with old one
++ deadlocks
++ overwriting new data with an old one
 
 Lowkiq has been created to eliminate such problems by avoiding parallel task processing within one entity.
 
@@ -52,17 +52,17 @@ Lowkiq has been created to eliminate such problems by avoiding parallel task pro
 
 Lowkiq's queues are reliable i.e.,
 Lowkiq saves information about a job being processed
-and returns incompleted jobs back to the queue on startup.
+and returns uncompleted jobs to the queue on startup.
 
 Jobs in queues are ordered by preassigned execution time, so they are not FIFO queues.
 
-Every job has it's own identifier. Lowkiq guarantees that jobs with equal id are processed by the same thread.
+Every job has its identifier. Lowkiq guarantees that jobs with equal IDs are processed by the same thread.
 
 Every queue is divided into a permanent set of shards.
-A job is placed into particular shard based on an id of the job.
+A job is placed into a particular shard based on an id of the job.
 So jobs with the same id are always placed into the same shard.
 All jobs of the shard are always processed with the same thread.
-This guarantees the sequently processing of jobs with the same ids and excludes the possibility of locks.
+This guarantees the sequential processing of jobs with the same ids and excludes the possibility of locks.
 
 Besides the id, every job has a payload.
 Payloads are accumulated for jobs with the same id.
@@ -71,8 +71,8 @@ It's useful when you need to process only the last message and drop all previous
 
 A worker corresponds to a queue and contains a job processing logic.
 
-Fixed amount of threads is used to process all job of all queues.
-Adding or removing queues or it's shards won't affect the amount of threads.
+The fixed number of threads is used to process all jobs of all queues.
+Adding or removing queues or their shards won't affect the number of threads.
 
 ## Sidekiq comparison
 
@@ -83,16 +83,16 @@ But if you use plugins like
 [sidekiq-merger](https://github.com/dtaniwaki/sidekiq-merger)
 or implement your own lock system, you should look at Lowkiq.
 
-For example, sidekiq-grouping accumulates a batch of jobs than enqueues it and accumulates a next batch.
-With this approach queue can contains two batches with a data of the same order.
+For example, sidekiq-grouping accumulates a batch of jobs then enqueues it and accumulates the next batch.
+With this approach, a queue can contain two batches with data of the same order.
 These batches are parallel processed with different threads, so we come back to the initial problem.
 
-Lowkiq was designed to avoid any types of locking.
+Lowkiq was designed to avoid any type of locking.
 
 Furthermore, Lowkiq's queues are reliable. Only Sidekiq Pro or plugins can add such functionality.
 
-This [benchmark](examples/benchmark) shows overhead on redis usage.
-This is the results for 5 threads, 100,000 blank jobs:
+This [benchmark](examples/benchmark) shows overhead on Redis usage.
+These are the results for 5 threads, 100,000 blank jobs:
 
 + lowkiq: 155 sec or 1.55 ms per job
 + lowkiq +hiredis: 80 sec or 0.80 ms per job
@@ -100,29 +100,29 @@ This is the results for 5 threads, 100,000 blank jobs:
 
 This difference is related to different queues structure.
 Sidekiq uses one list for all workers and fetches the job entirely for O(1).
-Lowkiq uses several data structures, including sorted sets for storing ids of jobs.
+Lowkiq uses several data structures, including sorted sets for keeping ids of jobs.
 So fetching only an id of a job takes O(log(N)).
 
 ## Queue
 
 Please, look at [the presentation](https://docs.google.com/presentation/d/e/2PACX-1vRdwA2Ck22r26KV1DbY__XcYpj2FdlnR-2G05w1YULErnJLB_JL1itYbBC6_JbLSPOHwJ0nwvnIHH2A/pub?start=false&loop=false&delayms=3000).
 
-Every job has following attributes:
+Every job has the following attributes:
 
 + `id` is a job identifier with string type.
-+ `payloads` is a sorted set of payloads ordered by it's score. Payload is an object. Score is a real number.
-+ `perform_in` is planned execution time. It's unix timestamp with real number type.
++ `payloads` is a sorted set of payloads ordered by its score. A payload is an object. A score is a real number.
++ `perform_in` is planned execution time. It's a Unix timestamp with a real number type.
 + `retry_count` is amount of retries. It's a real number.
 
-For example, `id` can be an identifier of replicated entity.
-`payloads` is a sorted set ordered by score of payload and resulted by grouping a payload of job by it's `id`.
-`payload` can be a ruby object, because it is serialized by `Marshal.dump`.
-`score` can be `payload`'s creation date (unix timestamp) or it's incremental version number.
-By default `score` and `perform_in` are current unix timestamp.
+For example, `id` can be an identifier of a replicated entity.
+`payloads` is a sorted set ordered by a score of payload and resulted by grouping a payload of the job by its `id`.
+`payload` can be a ruby object because it is serialized by `Marshal.dump`.
+`score` can be `payload`'s creation date (Unix timestamp) or it's an incremental version number.
+By default, `score` and `perform_in` are current Unix timestamp.
 `retry_count` for new unprocessed job equals to `-1`,
 for one-time failed is `0`, so the planned retries are counted, not the performed ones.
 
-A job execution can be unsuccessful. In this case, its `retry_count` is incremented, new `perform_in` is calculated with determined formula and it moves back to a queue.
+Job execution can be unsuccessful. In this case, its `retry_count` is incremented, the new `perform_in` is calculated with determined formula, and it moves back to a queue.
 
 In case of `retry_count` is getting `>=` `max_retry_count` an element of `payloads` with less (oldest) score is moved to a morgue,
 rest elements are moved back to the queue, wherein `retry_count` and `perform_in` are reset to `-1` and `now()` respectively.
@@ -146,14 +146,14 @@ If `max_retry_count = 1`, retries stop.
 
 They are applied when:
 
-+ a job had been in a queue and a new one with the same id was added
-+ a job was failed, but a new one with the same id had been added
-+ a job from morgue was moved back to queue, but queue had had a job with the same id
++ a job has been in a queue and a new one with the same id is added
++ a job is failed, but a new one with the same id has been added
++ a job from a morgue is moved back to a queue, but the queue has had a job with the same id
 
 Algorithm:
 
-+ payloads is merged, minimal score is chosen for equal payloads
-+ if a new job and queued job is merged, `perform_in` and `retry_count` is taken from the the job from the queue
++ payloads are merged, the minimal score is chosen for equal payloads
++ if a new job and queued job is merged, `perform_in` and `retry_count` is taken from the job from the queue
 + if a failed job and queued job is merged, `perform_in` and `retry_count` is taken from the failed one
 + if morgue job and queued job is merged, `perform_in = now()`, `retry_count = -1`
 
@@ -172,8 +172,8 @@ Example:
 { id: "1", payloads: #{"v1": 1, "v2": 3, "v3": 4}, retry_count: 0, perform_in: 1536323288 }
 ```
 
-Morgue is a part of the queue. Jobs in morgue are not processed.
-A job in morgue has following attributes:
+A morgue is a part of a queue. Jobs in a morgue are not processed.
+A job in a morgue has the following attributes:
 
 + id is the job identifier
 + payloads
@@ -273,7 +273,7 @@ ATestWorker.perform_async 1000.times.map { |id| { payload: {id: id} } }
 Options and their default values are:
 
 + `Lowkiq.poll_interval = 1` - delay in seconds between queue polling for new jobs.
-   Used only if the queue was empty at previous cycle or error was occured.
+   Used only if a queue was empty in a previous cycle or an error occurred.
 + `Lowkiq.threads_per_node = 5` - threads per node.
 + `Lowkiq.redis = ->() { Redis.new url: ENV.fetch('REDIS_URL') }` - redis connection options
 + `Lowkiq.client_pool_size = 5` - redis pool size for queueing jobs
@@ -327,7 +327,7 @@ Lowkiq.redis = ->() { Redis.new url: ENV.fetch('REDIS_URL'), driver: :hiredis }
 
 `path_to_app.rb` must load app. [Example](examples/dummy/lib/app.rb).
 
-Lazy loading of workers modules is unacceptable.
+The lazy loading of worker modules is unacceptable.
 For preliminarily loading modules use
 `require`
 or [`require_dependency`](https://api.rubyonrails.org/classes/ActiveSupport/Dependencies/Loadable.html#method-i-require_dependency)
@@ -335,15 +335,15 @@ for Ruby on Rails.
 
 ## Shutdown
 
-Send TERM or INT signal to process (Ctrl-C).
-Process will wait for executed jobs to finish.
+Send TERM or INT signal to the process (Ctrl-C).
+The process will wait for executed jobs to finish.
 
-Note that if queue is empty, process sleeps `poll_interval` seconds,
+Note that if a queue is empty, the process sleeps `poll_interval` seconds,
 therefore, the process will not stop until the `poll_interval` seconds have passed.
 
 ## Debug
 
-To get trace of all threads of app:
+To get trace of all threads of an app:
 
 ```
 kill -TTIN <pid>
@@ -361,7 +361,7 @@ cd examples/dummy ; bundle exec ../../exe/lowkiq -r ./lib/app.rb
 
 ## Exceptions
 
-`StandardError` thrown by worker are handled with middleware. Such exceptions doesn't lead to process stop.
+`StandardError` thrown by a worker are handled with middleware. Such exceptions don't lead to process stops.
 
 All other exceptions cause the process to stop.
 Lowkiq will wait for job execution by other threads.
@@ -480,10 +480,10 @@ worker C: 0
 worker D: 0, 1
 ```
 
-Lowkiq uses fixed amount of threads for job processing, therefore it is necessary to distribute shards between threads.
+Lowkiq uses a fixed number of threads for job processing, therefore it is necessary to distribute shards between threads.
 Splitter does it.
 
-To define a set of shards, which is being processed by thread, lets move them to one list:
+To define a set of shards, which is being processed by a thread, let's move them to one list:
 
 ```
 A0, A1, A2, B0, B1, B2, B3, C0, D0, D1
@@ -500,7 +500,7 @@ t1: A1, B1, C0
 t2: A2, B2, D0
 ```
 
-Besides Default Lowkiq has ByNode splitter. It allows to divide the load by several processes (nodes).
+Besides Default Lowkiq has the ByNode splitter. It allows dividing the load by several processes (nodes).
 
 ```
 Lowkiq.build_splitter = -> () do
@@ -511,7 +511,7 @@ Lowkiq.build_splitter = -> () do
 end
 ```
 
-So, instead of single process you need to execute multiple ones and to set environment variables up:
+So, instead of a single process, you need to execute multiple ones and to set environment variables up:
 
 ```
 # process 0
@@ -523,18 +523,18 @@ LOWKIQ_NUMBER_OF_NODES=2 LOWKIQ_NODE_NUMBER=1 bundle exec lowkiq -r ./lib/app.rb
 
 Summary amount of threads are equal product of `ENV.fetch('LOWKIQ_NUMBER_OF_NODES')` and `Lowkiq.threads_per_node`.
 
-You can also write your own splitter if your app needs extra distribution of shards between threads or nodes.
+You can also write your own splitter if your app needs an extra distribution of shards between threads or nodes.
 
 ## Scheduler
 
-Every thread processes a set of shards. Scheduler select shard for processing.
-Every thread has it's own instance of scheduler.
+Every thread processes a set of shards. The scheduler selects shard for processing.
+Every thread has its own instance of the scheduler.
 
 Lowkiq has 2 schedulers for your choice.
-`Seq` sequentally looks over shards.
+`Seq` sequentially looks over shards.
 `Lag`  chooses shard with the oldest job minimizing the lag. It's used by default.
 
-Scheduler can be set up through settings:
+The scheduler can be set up through settings:
 
 ```
 Lowkiq.build_scheduler = ->() { Lowkiq.build_seq_scheduler }
@@ -547,13 +547,13 @@ Lowkiq.build_scheduler = ->() { Lowkiq.build_lag_scheduler }
 ### `SomeWorker.shards_count`
 
 Sum of `shards_count` of all workers shouldn't be less than `Lowkiq.threads_per_node`
-otherwise threads will stay idle.
+otherwise, threads will stay idle.
 
 Sum of `shards_count` of all workers can be equal to `Lowkiq.threads_per_node`.
-In this case thread processes a single shard. This makes sense only with uniform queue load.
+In this case, a thread processes a single shard. This makes sense only with a uniform queue load.
 
 Sum of `shards_count` of all workers can be more than `Lowkiq.threads_per_node`.
-In this case `shards_count` can be counted as a priority.
+In this case, `shards_count` can be counted as a priority.
 The larger it is, the more often the tasks of this queue will be processed.
 
 There is no reason to set `shards_count` of one worker more than `Lowkiq.threads_per_node`,
@@ -561,8 +561,8 @@ because every thread will handle more than one shard from this queue, so it incr
 
 ### `SomeWorker.max_retry_count`
 
-From `retry_in` and `max_retry_count`, you can calculate approximate time that payload of job will be in a queue.
-After `max_retry_count` is reached the payload with a minimal score will be moved to a morgue.
+From `retry_in` and `max_retry_count`, you can calculate the approximate time that a payload of a job will be in a queue.
+After `max_retry_count` is reached a payload with a minimal score will be moved to a morgue.
 
 For default `retry_in` we receive the following table.
 
@@ -590,9 +590,9 @@ end
 
 ## Changing of worker's shards amount
 
-Try to count amount of shards right away and don't change it in future.
+Try to count the number of shards right away and don't change it in the future.
 
-If you can disable adding of new jobs, wait for queues to get empty and deploy the new version of code with changed amount of shards.
+If you can disable adding of new jobs, wait for queues to get empty, and deploy the new version of code with a changed amount of shards.
 
 If you can't do it, follow the next steps:
 
@@ -610,7 +610,7 @@ module ATestWorker
 end
 ```
 
-Set the number of shards and new queue name:
+Set the number of shards and the new queue name:
 
 ```ruby
 module ATestWorker
@@ -625,7 +625,7 @@ module ATestWorker
 end
 ```
 
-Add a worker moving jobs from the old queue to a new one:
+Add a worker moving jobs from the old queue to the new one:
 
 ```ruby
 module ATestMigrationWorker
