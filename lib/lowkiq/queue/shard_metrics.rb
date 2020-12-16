@@ -43,7 +43,7 @@ module Lowkiq
         _id, score = res.first
 
         return 0 if score.nil?
-        lag = @timestamp.call - score.to_i
+        lag = @timestamp.call - score.to_f
         return 0 if lag < 0
         lag
       end

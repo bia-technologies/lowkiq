@@ -247,10 +247,10 @@ end
 ATestWorker.perform_async [
   { id: 0 },
   { id: 1, payload: { attr: 'v1' } },
-  { id: 2, payload: { attr: 'v1' }, score: Time.now.to_i, perform_in: Time.now.to_i },
+  { id: 2, payload: { attr: 'v1' }, score: Time.now.to_f, perform_in: Time.now.to_f },
 ]
 # payload по умолчанию равен ""
-# score и perform_in по умолчанию равны Time.now.to_i
+# score и perform_in по умолчанию равны Time.now.to_f
 ```
 
 Вы можете переопределить `perform_async` и вычислять `id`, `score` и `perform_in` в воркере:

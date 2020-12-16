@@ -62,9 +62,9 @@ module ATest2Worker
 end
 
 ATestWorker.perform_async  1000.times.map { |id| { payload: {id: id},
-                                                   perform_in: Time.now.to_i + Random.rand(10)} }
+                                                   perform_in: Time.now.to_f + Random.rand(10)} }
 ATest2Worker.perform_async 1000.times.map { |id| { payload: {id: id},
-                                                   perform_in: Time.now.to_i + Random.rand(10)} }
+                                                   perform_in: Time.now.to_f + Random.rand(10)} }
 
 require 'rack'
 

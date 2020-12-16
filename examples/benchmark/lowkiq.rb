@@ -28,7 +28,7 @@ end
 
 puts "jobs are enqueued"
 
-start = Time.now.to_i
+start = Time.now.to_f
 
 Monitoring = Thread.new do
   metrics = Lowkiq::Queue::QueueMetrics.new Lowkiq.client_redis_pool
@@ -38,7 +38,7 @@ Monitoring = Thread.new do
     puts len
 
     if len == 0
-      total = Time.now.to_i - start
+      total = Time.now.to_f - start
 
       puts "total time: #{total}"
 

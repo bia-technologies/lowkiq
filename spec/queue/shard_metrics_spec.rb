@@ -28,7 +28,7 @@ RSpec.describe Lowkiq::Queue::ShardMetrics do
 
     describe 'filled' do
       it 'lag' do
-        lag = 10
+        lag = 10.0
         queue.push(
           [
             { id: '1', perform_in: $now - lag, payload: 'v1' },
