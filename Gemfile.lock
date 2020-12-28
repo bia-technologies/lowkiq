@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    lowkiq (1.0.5)
+    lowkiq (1.0.6)
       connection_pool (~> 2.2, >= 2.2.2)
       rack (>= 1.5.0)
       redis (>= 4.0.1, < 5)
@@ -15,7 +15,7 @@ GEM
     rack-test (1.1.0)
       rack (>= 1.0, < 3)
     rake (12.3.3)
-    redis (4.2.2)
+    redis (4.2.5)
     rspec (3.9.0)
       rspec-core (~> 3.9.0)
       rspec-expectations (~> 3.9.0)

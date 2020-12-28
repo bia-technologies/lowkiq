@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    lowkiq (1.0.0)
+    lowkiq (1.0.6)
       connection_pool (~> 2.2, >= 2.2.2)
       rack (>= 1.5.0)
       redis (>= 4.0.1, < 5)
@@ -9,9 +9,9 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    connection_pool (2.2.2)
+    connection_pool (2.2.3)
     rack (2.0.5)
-    redis (4.1.3)
+    redis (4.2.5)
 
 PLATFORMS
   ruby
@@ -21,4 +21,4 @@ DEPENDENCIES
   rack
 
 BUNDLED WITH
-   2.1.2
+   2.1.4

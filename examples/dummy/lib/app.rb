@@ -61,6 +61,8 @@ module ATest2Worker
   end
 end
 
+Lowkiq.workers = [ ATestWorker, ATest2Worker ]
+
 ATestWorker.perform_async  1000.times.map { |id| { payload: {id: id},
                                                    perform_in: Time.now.to_i + Random.rand(10)} }
 ATest2Worker.perform_async 1000.times.map { |id| { payload: {id: id},

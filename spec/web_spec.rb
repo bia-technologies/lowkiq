@@ -18,6 +18,16 @@ RSpec.describe Lowkiq::Web do
     JSON.parse(last_response.body)
   end
 
+  around(:each) do |t|
+    saved = Lowkiq.workers
+    Lowkiq.workers = [ApiTestWorker]
+    begin
+      t.call
+    ensure
+      Lowkiq.workers = saved
+    end
+  end
+
   before(:each) { Lowkiq.server_redis_pool.with(&:flushdb)  }
   before(:each) { Lowkiq.server_redis_pool.with { |r| Lowkiq::Script.load! r } }
   before(:each) { ApiTestWorker.perform_async [ {id: 1, payload: "v1"} ] }

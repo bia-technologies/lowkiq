@@ -1,7 +1,5 @@
 module Lowkiq
   module Worker
-    extend ExtendTracker
-
     attr_accessor :shards_count,
                   :batch_size,
                   :max_retry_count,

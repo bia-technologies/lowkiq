@@ -216,6 +216,12 @@ module ATestWorker
 end
 ```
 
+And then you have to add it to Lowkiq in your initializer file due to problems with autoloading:
+
+```ruby
+Lowkiq.workers = [ ATestWorker ]
+```
+
 Default values:
 
 ```ruby
@@ -272,6 +278,7 @@ ATestWorker.perform_async 1000.times.map { |id| { payload: {id: id} } }
 
 Options and their default values are:
 
++ `Lowkiq.workers = []`- list of workers to use. Since 1.1.0.
 + `Lowkiq.poll_interval = 1` - delay in seconds between queue polling for new jobs.
    Used only if a queue was empty in a previous cycle or an error occurred.
 + `Lowkiq.threads_per_node = 5` - threads per node.
@@ -384,14 +391,17 @@ end
 ```ruby
 # config/initializers/lowkiq.rb
 
-# loading all lowkiq workers
-Dir["#{Rails.root}/app/lowkiq_workers/**/*.rb"].each { |file| require_dependency file }
-
 # configuration:
 # Lowkiq.redis = -> { Redis.new url: ENV.fetch('LOWKIQ_REDIS_URL') }
 # Lowkiq.threads_per_node = ENV.fetch('LOWKIQ_THREADS_PER_NODE').to_i
 # Lowkiq.client_pool_size = ENV.fetch('LOWKIQ_CLIENT_POOL_SIZE').to_i
 # ...
+
+# since 1.1.0
+Lowkiq.workers = [
+  ATestWorker,
+  OtherCoolWorker
+]
 
 Lowkiq.server_middlewares << -> (worker, batch, &block) do
   logger = Rails.logger
