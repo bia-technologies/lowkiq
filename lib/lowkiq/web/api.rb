@@ -18,7 +18,7 @@ module Lowkiq
           total = {
             length:        metrics.map(&:length).reduce(&:+).to_i,
             morgue_length: metrics.map(&:morgue_length).reduce(&:+).to_i,
-            lag:           metrics.map(&:lag).max.to_i,
+            lag:           metrics.map(&:lag).max.to_f,
           }
           {
             total: total,
