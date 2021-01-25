@@ -22,7 +22,7 @@ RSpec.describe Lowkiq::Queue::ShardMetrics do
   describe 'shard_metrics' do
     describe 'empty' do
       it 'lag' do
-        expect( shard_metrics.lag ).to be(0)
+        expect( shard_metrics.lag ).to be(0.0)
       end
     end
 
