@@ -29,7 +29,7 @@ module Lowkiq
 
     module Timestamp
       def self.now
-        Time.now.to_i
+        Time.now.to_f
       end
     end
   end

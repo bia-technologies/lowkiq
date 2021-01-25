@@ -64,11 +64,9 @@ module Lowkiq
 
       def coerce_lag(res)
         _id, score = res.first
-
-        return 0 if score.nil?
-        return 1 if score == 0 # на случай Actions#perform_all_jobs_now
-        lag = @timestamp.call - score.to_i
-        return 0 if lag < 0
+        return 0.0 if score.nil?
+        lag = @timestamp.call - score
+        return 0.0 if lag < 0.0
         lag
       end
 

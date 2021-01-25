@@ -12,7 +12,7 @@ module Lowkiq
           metrics = @metrics.call identifiers
           shard_handler, _lag =
                          shard_handlers.zip(metrics.map(&:lag))
-                           .select { |(_, lag)| lag > 0 }
+                           .select { |(_, lag)| lag > 0.0 }
                            .max_by { |(_, lag)| lag }
 
           if shard_handler

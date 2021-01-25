@@ -35,11 +35,11 @@ RSpec.describe Lowkiq::Web do
       expect( last_response.status ).to eq(200)
       expect( json_last_response['total']['length'] ).to be(1)
       expect( json_last_response['total']['morgue_length'] ).to be(0)
-      expect( json_last_response['total']['lag'] ).to be(0)
+      expect( json_last_response['total']['lag'] ).to be_within(0.1).of(0.0)
 
       expect( json_last_response['by_worker']['ApiTestWorker']['length'] ).to be(1)
       expect( json_last_response['by_worker']['ApiTestWorker']['morgue_length'] ).to be(0)
-      expect( json_last_response['by_worker']['ApiTestWorker']['lag'] ).to be(0)
+      expect( json_last_response['by_worker']['ApiTestWorker']['lag'] ).to be_within(0.1).of(0.0)
     end
   end
 

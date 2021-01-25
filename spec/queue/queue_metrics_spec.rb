@@ -30,7 +30,7 @@ RSpec.describe Lowkiq::Queue::QueueMetrics do
       end
 
       it 'lag' do
-        expect( queue_metrics.lag ).to be(0)
+        expect( queue_metrics.lag ).to be(0.0)
       end
 
       it 'processed' do
@@ -68,7 +68,7 @@ RSpec.describe Lowkiq::Queue::QueueMetrics do
       end
 
       it 'lag' do
-        lag = 10
+        lag = 10.0
         queue.push(
           [
             { id: '1', perform_in: $now - lag, payload: 'v1' },
@@ -86,7 +86,7 @@ RSpec.describe Lowkiq::Queue::QueueMetrics do
           ]
         )
 
-        expect( queue_metrics.lag ).to be(0)
+        expect( queue_metrics.lag ).to be(0.0)
       end
 
       it 'processed' do
