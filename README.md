@@ -357,6 +357,17 @@ docker-compose run --rm --service-port app bash
 bundle
 rspec
 cd examples/dummy ; bundle exec ../../exe/lowkiq -r ./lib/app.rb
+
+# open localhost:8080
+```
+
+```
+docker-compose run --rm --service-port frontend bash
+npm run dumb
+# open localhost:8081
+
+# npm run build
+# npm run web-api
 ```
 
 ## Exceptions
