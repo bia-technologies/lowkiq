@@ -10,7 +10,6 @@ require "lowkiq/version"
 require "lowkiq/utils"
 require "lowkiq/script"
 
-require "lowkiq/extend_tracker"
 require "lowkiq/option_parser"
 
 require "lowkiq/splitters/default"
@@ -42,7 +41,8 @@ module Lowkiq
                   :server_middlewares, :on_server_init,
                   :build_scheduler, :build_splitter,
                   :last_words,
-                  :dump_payload, :load_payload
+                  :dump_payload, :load_payload,
+                  :workers
 
     def server_redis_pool
       @server_redis_pool ||= ConnectionPool.new(size: threads_per_node, timeout: pool_timeout, &redis)
@@ -61,10 +61,6 @@ module Lowkiq
           end
         end
       end
-    end
-
-    def workers
-      Worker.extended_modules
     end
 
     def shard_handlers
@@ -112,4 +108,5 @@ module Lowkiq
   self.last_words = ->(ex) {}
   self.dump_payload = ::Marshal.method :dump
   self.load_payload = ::Marshal.method :load
+  self.workers = []
 end
