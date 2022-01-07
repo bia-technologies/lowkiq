@@ -53,7 +53,8 @@ RSpec.describe Lowkiq::ShardHandler do
 
     it 'error' do
       expect($retry_in).to receive(:call).with(0).and_return(10)
-      expect($perform).to receive(:call).at_least(:once).and_raise(StandardError.new "error")
+      mock_error = StandardError.new("error")
+      expect($perform).to receive(:call).at_least(:once).and_raise(mock_error)
 
       worker.perform_async(
         [
@@ -66,7 +67,7 @@ RSpec.describe Lowkiq::ShardHandler do
       expect( queue.processing_data shard_index ).to be_empty
 
       expected_in_queue = {
-        id: '1', retry_count: 0, perform_in: $now + 10, error: "error",
+        id: '1', retry_count: 0, perform_in: $now + 10, error: mock_error.full_message,
         payloads: [['v1', 0],
                    ['v2', 1]],
       }
@@ -77,7 +78,8 @@ RSpec.describe Lowkiq::ShardHandler do
 
     it 'morgue' do
       expect($retry_in).to receive(:call).with( worker.max_retry_count ).and_return(10)
-      expect($perform).to receive(:call).at_least(:once).and_raise(StandardError.new "error")
+      mock_error = StandardError.new("error")
+      expect($perform).to receive(:call).at_least(:once).and_raise(mock_error)
 
       worker.perform_async(
         [
@@ -90,14 +92,14 @@ RSpec.describe Lowkiq::ShardHandler do
       expect( queue.processing_data shard_index ).to be_empty
 
       expected_in_queue = {
-        id: '1', retry_count: 0, perform_in: $now, error: "error",
+        id: '1', retry_count: 0, perform_in: $now, error: mock_error.full_message,
         payloads: [['v2', 1]],
       }
 
       expect( queries.fetch ['1'] ).to contain_exactly(expected_in_queue)
 
       expected_in_morgue = {
-        id: '1', payloads: [['v1', 0]], updated_at: $now, error: "error",
+        id: '1', payloads: [['v1', 0]], updated_at: $now, error: mock_error.full_message,
       }
 
       expect( queries.morgue_fetch ['1'] ).to contain_exactly(expected_in_morgue)
