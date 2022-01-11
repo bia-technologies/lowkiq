@@ -42,7 +42,7 @@ module Lowkiq
                   :build_scheduler, :build_splitter,
                   :last_words,
                   :dump_payload, :load_payload,
-                  :workers
+                  :workers, :save_backtrace
 
     def server_redis_pool
       @server_redis_pool ||= ConnectionPool.new(size: threads_per_node, timeout: pool_timeout, &redis)
@@ -109,4 +109,5 @@ module Lowkiq
   self.dump_payload = ::Marshal.method :dump
   self.load_payload = ::Marshal.method :load
   self.workers = []
+  self.save_backtrace = false
 end

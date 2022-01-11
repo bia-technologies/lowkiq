@@ -292,6 +292,7 @@ Options and their default values are:
 + `Lowkiq.last_words = ->(ex) {}` is an exception handler of descendants of `StandardError` caused the process stop
 + `Lowkiq.dump_payload = Marshal.method :dump`
 + `Lowkiq.load_payload = Marshal.method :load`
++ `Lowkiq.save_backtrace = false` - option to set whether lowkiq stores the error backtrace for dead jobs
 
 ```ruby
 $logger = Logger.new(STDOUT)

@@ -65,7 +65,7 @@ module Lowkiq
       data.map! do |job|
         job[:retry_count] += 1
         job[:perform_in] = @timestamp.call + @worker.retry_in(job[:retry_count])
-        job[:error] = ex.full_message
+        job[:error] = Lowkiq.save_backtrace ? ex.full_message : ex.message
         job
       end
     end
