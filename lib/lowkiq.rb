@@ -110,7 +110,7 @@ module Lowkiq
 
     # checking whether error message is base64 encoded for backward compatibility
     def compressed?(error_msg)
-      error_msg.is_a?(String) && Base64.strict_encode64(Base64.decode64(error_msg)) == error_msg
+      error_msg.is_a?(String) && Base64.encode64(Base64.decode64(error_msg)) == error_msg
     end
   end
 
