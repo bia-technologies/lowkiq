@@ -84,7 +84,7 @@ export default function Job(props) {
         {isPresent(perform_in)  && <Meta label="perform_in"  value={time(perform_in)}  />}
         {isPresent(retry_count) && <Meta label="retry_count" value={fmtRetryCount(retry_count)} />}
         {isPresent(updated_at)  && <Meta label="updated_at"  value={time(updated_at)}  />}
-        {isPresent(error)       && <Meta label="error"       value={error} />}
+        {isPresent(error)       && <Meta label="error"       value={<pre>error</pre>} />}
         {payloads.map(([payload, score]) => {
           return <Payload key={score} score={time(score)} payload={payload} />;
         })}
