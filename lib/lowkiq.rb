@@ -1,6 +1,7 @@
 require "connection_pool"
 require "redis"
 require "zlib"
+require "base64"
 require "json"
 require "ostruct"
 require "optparse"
@@ -92,6 +93,24 @@ module Lowkiq
         node_number,
         Lowkiq.threads_per_node,
       )
+    end
+
+    def compress_error(error_msg)
+      compressed = Zlib::Deflate.deflate(error_msg.to_s)
+      Base64.encode64(compressed)
+    end
+
+    def uncompress_error(error_msg)
+      return error_msg unless compressed?(error_msg)
+      decoded = Base64.decode64(backtrace)
+      Zlib::Inflate.inflate(decoded)
+    end
+
+    private
+
+    # checking whether error message is base64 encoded for backward compatibility
+    def compressed?(error_msg)
+      error_msg.is_a?(String) && Base64.strict_encode64(Base64.decode64(error_msg)) == error_msg
     end
   end
 

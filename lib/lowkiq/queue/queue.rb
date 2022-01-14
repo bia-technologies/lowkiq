@@ -216,7 +216,7 @@ module Lowkiq
             perform_in: ids_with_perform_in[id].to_f,
             retry_count: ids_with_retry_count[id].to_f,
             payloads: payloads.map { |(payload, score)| [Lowkiq.load_payload.call(payload), score] },
-            error: errors[id]
+            error: Lowkiq.uncompress_error(errors[id])
           }.compact
         end.compact
       end
