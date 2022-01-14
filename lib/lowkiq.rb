@@ -102,7 +102,7 @@ module Lowkiq
 
     def uncompress_error(error_msg)
       return error_msg unless compressed?(error_msg)
-      decoded = Base64.decode64(backtrace)
+      decoded = Base64.decode64(error_msg)
       Zlib::Inflate.inflate(decoded)
     end
 
