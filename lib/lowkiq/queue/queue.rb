@@ -83,7 +83,7 @@ module Lowkiq
               payloads    = job.fetch(:payloads).map do |(payload, score)|
                 [score, Lowkiq.dump_payload.call(payload)]
               end
-              error       = job.fetch(:error, nil)
+              error       = Lowkiq.dump_error.call(job.fetch(:error, nil))
 
               shard = id_to_shard id
 
@@ -141,7 +141,7 @@ module Lowkiq
               payloads = job.fetch(:payloads).map do |(payload, score)|
                 [score, Lowkiq.dump_payload.call(payload)]
               end
-              error    = job.fetch(:error, nil)
+              error    = Lowkiq.dump_error.call(job.fetch(:error, nil))
 
 
               redis.zadd @keys.morgue_all_ids_lex_zset, 0, id
@@ -216,7 +216,7 @@ module Lowkiq
             perform_in: ids_with_perform_in[id].to_f,
             retry_count: ids_with_retry_count[id].to_f,
             payloads: payloads.map { |(payload, score)| [Lowkiq.load_payload.call(payload), score] },
-            error: errors[id]
+            error: Lowkiq.load_error.call(errors[id])
           }.compact
         end.compact
       end

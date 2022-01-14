@@ -42,6 +42,7 @@ module Lowkiq
                   :build_scheduler, :build_splitter,
                   :last_words,
                   :dump_payload, :load_payload,
+                  :format_error, :dump_error, :load_error,
                   :workers
 
     def server_redis_pool
@@ -108,5 +109,8 @@ module Lowkiq
   self.last_words = ->(ex) {}
   self.dump_payload = ::Marshal.method :dump
   self.load_payload = ::Marshal.method :load
+  self.format_error = -> (error) { error.message }
+  self.dump_error = -> (msg) { msg }
+  self.load_error = -> (msg) { msg }
   self.workers = []
 end

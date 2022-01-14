@@ -65,7 +65,7 @@ module Lowkiq
       data.map! do |job|
         job[:retry_count] += 1
         job[:perform_in] = @timestamp.call + @worker.retry_in(job[:retry_count])
-        job[:error] = ex.message
+        job[:error] = Lowkiq.format_error.call(ex)
         job
       end
     end
