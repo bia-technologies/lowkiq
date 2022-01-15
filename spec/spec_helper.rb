@@ -2,6 +2,10 @@ require "bundler/setup"
 require "lowkiq"
 require "pry-byebug"
 
+# to test their usage
+Lowkiq.dump_error = -> (msg) { msg&.reverse }
+Lowkiq.load_error = -> (msg) { msg&.reverse }
+
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"
