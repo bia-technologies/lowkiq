@@ -1,6 +1,20 @@
 require 'logger'
+require "zlib"
+require "base64"
 
 # Lowkiq.build_splitter = ->() { Lowkiq.build_by_node_splitter 2, 0 }
+
+Lowkiq.format_error = -> (error) { error.full_message(highlight: false) }
+Lowkiq.dump_error = Proc.new do |msg|
+  compressed = Zlib::Deflate.deflate(msg.to_s)
+  Base64.encode64(compressed)
+end
+Lowkiq.load_error = Proc.new do |input|
+  decoded = Base64.decode64(input)
+  Zlib::Inflate.inflate(decoded)
+rescue
+  input
+end
 
 $logger = Logger.new(STDOUT)
 

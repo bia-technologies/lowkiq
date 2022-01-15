@@ -1,7 +1,6 @@
 require "connection_pool"
 require "redis"
 require "zlib"
-require "base64"
 require "json"
 require "ostruct"
 require "optparse"
@@ -43,7 +42,8 @@ module Lowkiq
                   :build_scheduler, :build_splitter,
                   :last_words,
                   :dump_payload, :load_payload,
-                  :workers, :format_error_message
+                  :format_error, :dump_error, :load_error,
+                  :workers
 
     def server_redis_pool
       @server_redis_pool ||= ConnectionPool.new(size: threads_per_node, timeout: pool_timeout, &redis)
@@ -94,24 +94,6 @@ module Lowkiq
         Lowkiq.threads_per_node,
       )
     end
-
-    def compress_error(error_msg)
-      compressed = Zlib::Deflate.deflate(error_msg.to_s)
-      Base64.encode64(compressed)
-    end
-
-    def uncompress_error(error_msg)
-      return error_msg unless compressed?(error_msg)
-      decoded = Base64.decode64(error_msg)
-      Zlib::Inflate.inflate(decoded)
-    end
-
-    private
-
-    # checking whether error message is base64 encoded for backward compatibility
-    def compressed?(error_msg)
-      error_msg.is_a?(String) && Base64.encode64(Base64.decode64(error_msg)) == error_msg
-    end
   end
 
   # defaults
@@ -127,6 +109,8 @@ module Lowkiq
   self.last_words = ->(ex) {}
   self.dump_payload = ::Marshal.method :dump
   self.load_payload = ::Marshal.method :load
+  self.format_error = -> (error) { error.message }
+  self.dump_error = -> (msg) { msg }
+  self.load_error = -> (msg) { msg }
   self.workers = []
-  self.format_error_message = :message.to_proc
 end

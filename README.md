@@ -28,6 +28,8 @@ Ordered background jobs processing
 * [Recommendations on configuration](#recommendations-on-configuration)
   + [`SomeWorker.shards_count`](#someworkershards_count)
   + [`SomeWorker.max_retry_count`](#someworkermax_retry_count)
+* [Changing of worker's shards amount](#changing-of-workers-shards-amount)
+* [Extended error info](#extended-error-info)
 
 ## Rationale
 
@@ -293,6 +295,10 @@ Options and their default values are:
 + `Lowkiq.dump_payload = Marshal.method :dump`
 + `Lowkiq.load_payload = Marshal.method :load`
 + `Lowkiq.format_error_message = :message.to_proc` - option to change the error format for dead jobs. must be a proc.
+
++ `Lowkiq.format_error = -> (error) { error.message }` can be used to add a backtrace. Please see [Extended error info](#extended-error-info)
++ `Lowkiq.dump_error = -> (msg) { msg }` can be used to implement compression logic
++ `Lowkiq.load_error = -> (msg) { msg }` can be used to implement decompresseion logic
 
 ```ruby
 $logger = Logger.new(STDOUT)
@@ -665,5 +671,23 @@ module ATestMigrationWorker
 
     ATestWorker.perform_async jobs
   end
+end
+```
+
+## Extended error info
+
+```ruby
+Lowkiq.format_error = -> (error) { error.full_message(highlight: false) }
+
+Lowkiq.dump_error = Proc.new do |msg|
+  compressed = Zlib::Deflate.deflate(msg.to_s)
+  Base64.encode64(compressed)
+end
+
+Lowkiq.load_error = Proc.new do |input|
+  decoded = Base64.decode64(input)
+  Zlib::Inflate.inflate(decoded)
+rescue
+  input
 end
 ```
