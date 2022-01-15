@@ -66,7 +66,7 @@ RSpec.describe Lowkiq::ShardHandler do
       expect( queue.processing_data shard_index ).to be_empty
 
       expected_in_queue = {
-        id: '1', retry_count: 0, perform_in: $now + 10, error: Lowkiq.compress_error("error"),
+        id: '1', retry_count: 0, perform_in: $now + 10, error: "error",
         payloads: [['v1', 0],
                    ['v2', 1]],
       }
@@ -90,14 +90,14 @@ RSpec.describe Lowkiq::ShardHandler do
       expect( queue.processing_data shard_index ).to be_empty
 
       expected_in_queue = {
-        id: '1', retry_count: 0, perform_in: $now, error: Lowkiq.compress_error("error"),
+        id: '1', retry_count: 0, perform_in: $now, error: "error",
         payloads: [['v2', 1]],
       }
 
       expect( queries.fetch ['1'] ).to contain_exactly(expected_in_queue)
 
       expected_in_morgue = {
-        id: '1', payloads: [['v1', 0]], updated_at: $now, error: Lowkiq.compress_error("error"),
+        id: '1', payloads: [['v1', 0]], updated_at: $now, error: "error",
       }
 
       expect( queries.morgue_fetch ['1'] ).to contain_exactly(expected_in_morgue)
