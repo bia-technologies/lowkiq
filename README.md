@@ -296,9 +296,9 @@ Options and their default values are:
 + `Lowkiq.load_payload = Marshal.method :load`
 + `Lowkiq.format_error_message = :message.to_proc` - option to change the error format for dead jobs. must be a proc.
 
-+ `Lowkiq.format_error = -> (error) { error.message }` can be used to add a backtrace. Please see [Extended error info](#extended-error-info)
-+ `Lowkiq.dump_error = -> (msg) { msg }` can be used to implement compression logic
-+ `Lowkiq.load_error = -> (msg) { msg }` can be used to implement decompresseion logic
++ `Lowkiq.format_error = -> (error) { error.message }` can be used to add error backtrace. Please see [Extended error info](#extended-error-info)
++ `Lowkiq.dump_error = -> (msg) { msg }` can be used to implement a custom compression logic for errors. Recommended when using `Lowkiq.format_error`.
++ `Lowkiq.load_error = -> (msg) { msg }` can be used to implement a custom decompression logic for errors.
 
 ```ruby
 $logger = Logger.new(STDOUT)
@@ -675,7 +675,9 @@ end
 ```
 
 ## Extended error info
-
+For failed jobs, lowkiq only stores `error.message` by default. This can be configured by using `Lowkiq.format_error` setting.
+`Lowkiq.dump` and `Lowkiq.load_error` can be used to compress and decompress the error messages respectively.
+Example:
 ```ruby
 Lowkiq.format_error = -> (error) { error.full_message(highlight: false) }
 
