@@ -492,6 +492,17 @@ Lowkiq.on_server_init = ->() do
 end
 ```
 
+Note: In Rails 7, the worker files wouldn't be loaded by default in the initializers since they are managed by the `main` autoloader. It can be initialized by:
+
+```ruby
+Rails.application.config.to_prepare do
+  Lowkiq.workers = [
+    ATestWorker,
+    OtherCoolWorker
+  ]
+end
+```
+
 Execution: `bundle exec lowkiq -r ./config/environment.rb`
 
 
