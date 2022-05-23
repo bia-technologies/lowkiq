@@ -492,7 +492,7 @@ Lowkiq.on_server_init = ->() do
 end
 ```
 
-Note: In Rails 7, the worker files wouldn't be loaded by default in the initializers since they are managed by the `main` autoloader. It can be initialized by:
+Note: In Rails 7, the worker files wouldn't be loaded by default in the initializers since they are managed by the `main` autoloader. To solve this, we can wrap setting the workers around the `to_prepare` configuration.
 
 ```ruby
 Rails.application.config.to_prepare do
