@@ -206,6 +206,12 @@ module ATestWorker
     10 * (count + 1) # (i.e. 10, 20, 30, 40, 50)
   end
 
+  def self.retries_exhausted(batch)
+    batch.each do |job|
+      Rails.logger.info "retries exhausted for #{name} with error #{job[:error]}"
+    end
+  end
+
   def self.perform(payloads_by_id)
     # payloads_by_id is a hash map
     payloads_by_id.each do |id, payloads|

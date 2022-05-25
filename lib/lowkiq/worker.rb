@@ -18,6 +18,10 @@ module Lowkiq
       (retry_count ** 4) + 15 + (rand(30) * (retry_count + 1))
     end
 
+    def retries_exhausted(batch)
+      # no-op
+    end
+
     def perform(payload)
       fail "not implemented"
     end
