@@ -39,8 +39,8 @@ module Lowkiq
 
         @queue.push_back back
         @queue.push_to_morgue morgue
-        @worker.retries_exhausted morgue
         @queue.ack @shard_index, data, :fail
+        @worker.retries_exhausted morgue
         false
       end
     end

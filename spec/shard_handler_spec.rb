@@ -11,6 +11,10 @@ RSpec.describe Lowkiq::ShardHandler do
     def self.perform(batch)
       $perform.call(batch)
     end
+
+    def self.retries_exhausted(batch)
+      $retries_exhausted.call(batch)
+    end
   end
 
   before(:each) { Lowkiq.server_redis_pool.with(&:flushdb)  }
@@ -24,6 +28,7 @@ RSpec.describe Lowkiq::ShardHandler do
   before(:each) { $id = double('id') }
   before(:each) { $retry_in = double('retry_in') }
   before(:each) { $perform = double('perform') }
+  before(:each) { $retries_exhausted = double('retries_exhausted') }
 
   let(:worker) { ATestWorker }
   let(:queue) { worker.client_queue }
@@ -54,6 +59,7 @@ RSpec.describe Lowkiq::ShardHandler do
     it 'error' do
       expect($retry_in).to receive(:call).with(0).and_return(10)
       expect($perform).to receive(:call).at_least(:once).and_raise(StandardError.new "error")
+      expect($retries_exhausted).to receive(:call).at_most(:once).with([])
 
       worker.perform_async(
         [
@@ -85,6 +91,12 @@ RSpec.describe Lowkiq::ShardHandler do
           { id: 1, payload: "v2", score: 1, retry_count: worker.max_retry_count - 1 },
         ]
       )
+
+      expected_in_retries_exhausted = [{
+        id: "1", payloads: [["v1", 0]], error: "error"
+      }]
+
+      expect($retries_exhausted).to receive(:call).at_most(:once).with(expected_in_retries_exhausted)
 
       expect( shard.process ).to be(false)
       expect( queue.processing_data shard_index ).to be_empty
