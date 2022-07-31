@@ -38,8 +38,22 @@ module Lowkiq
       Queue::Actions.new client_queue, client_queries
     end
 
-    def perform_async(batch)
-      client_queue.push batch
+    def client_wrapper
+      null = -> (worker, batch, &block) { block.call }
+      Lowkiq.client_middlewares.reduce(null) do |wrapper, m|
+        -> (worker, batch, &block) do
+          wrapper.call worker, batch do
+            m.call worker, batch, &block
+          end
+        end
+      end
     end
+
+    def perform_async(batch)
+      worker = self
+      wrapper = client_wrapper
+      wrapper.call(worker, batch) {client_queue.push batch}
+    end
+
   end
 end

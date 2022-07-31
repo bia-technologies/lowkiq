@@ -38,7 +38,7 @@ module Lowkiq
   class << self
     attr_accessor :poll_interval, :threads_per_node,
                   :redis, :client_pool_size, :pool_timeout,
-                  :server_middlewares, :on_server_init,
+                  :server_middlewares, :client_middlewares, :on_server_init,
                   :build_scheduler, :build_splitter,
                   :last_words,
                   :dump_payload, :load_payload,
@@ -103,6 +103,7 @@ module Lowkiq
   self.client_pool_size = 5
   self.pool_timeout = 5
   self.server_middlewares = []
+  self.client_middlewares = []
   self.on_server_init = ->() {}
   self.build_scheduler = ->() { Lowkiq.build_lag_scheduler }
   self.build_splitter = ->() { Lowkiq.build_default_splitter }
