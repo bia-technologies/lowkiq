@@ -38,7 +38,7 @@ module Lowkiq
   class << self
     attr_accessor :poll_interval, :threads_per_node,
                   :redis, :client_pool_size, :pool_timeout,
-                  :server_middlewares, :on_server_init,
+                  :server_middlewares, :client_middlewares, :on_server_init,
                   :build_scheduler, :build_splitter,
                   :last_words,
                   :dump_payload, :load_payload,
@@ -53,15 +53,23 @@ module Lowkiq
       @client_redis_pool ||= ConnectionPool.new(size: client_pool_size, timeout: pool_timeout, &redis)
     end
 
-    def server_wrapper
+    def middleware_wrapper(middlewares)
       null = -> (worker, batch, &block) { block.call }
-      server_middlewares.reduce(null) do |wrapper, m|
+      middlewares.reduce(null) do |wrapper, m|
         -> (worker, batch, &block) do
           wrapper.call worker, batch do
             m.call worker, batch, &block
           end
         end
       end
+    end
+
+    def client_wrapper
+      @client_wrapper ||= self.middleware_wrapper(self.client_middlewares)
+    end
+
+    def server_wrapper
+      @server_wrapper ||= self.middleware_wrapper(self.server_middlewares)
     end
 
     def shard_handlers
@@ -103,6 +111,7 @@ module Lowkiq
   self.client_pool_size = 5
   self.pool_timeout = 5
   self.server_middlewares = []
+  self.client_middlewares = []
   self.on_server_init = ->() {}
   self.build_scheduler = ->() { Lowkiq.build_lag_scheduler }
   self.build_splitter = ->() { Lowkiq.build_default_splitter }

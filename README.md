@@ -293,7 +293,8 @@ Options and their default values are:
 + `Lowkiq.redis = ->() { Redis.new url: ENV.fetch('REDIS_URL') }` - redis connection options
 + `Lowkiq.client_pool_size = 5` - redis pool size for queueing jobs
 + `Lowkiq.pool_timeout = 5` - client and server redis pool timeout
-+ `Lowkiq.server_middlewares = []` - a middleware list, used for worker wrapping
++ `Lowkiq.server_middlewares = []` - a middleware list, used when job is processed
++ `Lowkiq.client_middlewares = []` - a middleware list, used when job is enqueued
 + `Lowkiq.on_server_init = ->() {}` - a lambda is being executed when server inits
 + `Lowkiq.build_scheduler = ->() { Lowkiq.build_lag_scheduler }` is a scheduler
 + `Lowkiq.build_splitter = ->() { Lowkiq.build_default_splitter }` is a splitter
@@ -322,6 +323,13 @@ Lowkiq.server_middlewares << -> (worker, batch, &block) do
     raise e
   end
 end
+
+Lowkiq.client_middlewares << -> (worker, batch, &block) do
+  $logger.info "Enqueueing job for #{worker} #{batch}"
+  block.call
+  $logger.info "Enqueued job for #{worker} #{batch}"
+end
+
 ```
 
 ## Performance

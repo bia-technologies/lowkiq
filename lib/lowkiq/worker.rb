@@ -39,7 +39,8 @@ module Lowkiq
     end
 
     def perform_async(batch)
-      client_queue.push batch
+      Lowkiq.client_wrapper.call(self, batch) {client_queue.push batch}
     end
+
   end
 end
