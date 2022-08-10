@@ -53,9 +53,9 @@ module Lowkiq
       @client_redis_pool ||= ConnectionPool.new(size: client_pool_size, timeout: pool_timeout, &redis)
     end
 
-    def middleware_wrapper(middlewares)
+    def server_wrapper
       null = -> (worker, batch, &block) { block.call }
-      middlewares.reduce(null) do |wrapper, m|
+      server_middlewares.reduce(null) do |wrapper, m|
         -> (worker, batch, &block) do
           wrapper.call worker, batch do
             m.call worker, batch, &block
@@ -65,12 +65,19 @@ module Lowkiq
     end
 
     def client_wrapper
-      @client_middleware ||= self.middleware_wrapper(self.client_middlewares)
+      null = -> (worker, batch, &block) { block.call }
+      @client_middleware ||= client_middlewares.reduce(null) do |wrapper, m|
+        -> (worker, batch, &block) do
+          wrapper.call worker, batch do
+            m.call worker, batch, &block
+          end
+        end
+      end
     end
 
     def shard_handlers
       self.workers.flat_map do |w|
-        ShardHandler.build_many w, self.middleware_wrapper(self.server_middlewares)
+        ShardHandler.build_many w, self.server_wrapper
       end
     end
 
