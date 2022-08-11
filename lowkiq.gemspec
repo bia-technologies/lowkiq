@@ -5,8 +5,8 @@ require "lowkiq/version"
 Gem::Specification.new do |spec|
   spec.name          = "lowkiq"
   spec.version       = Lowkiq::VERSION
-  spec.authors       = ["Mikhail Kuzmin"]
-  spec.email         = ["Mihail.Kuzmin@bia-tech.ru"]
+  spec.authors       = ["Mikhail Kuzmin", "Sergey Staskov"]
+  spec.email         = ["Sergey.Staskov@bia-tech.ru"]
 
   spec.summary       = %q{Lowkiq}
   spec.description   = %q{Lowkiq}
