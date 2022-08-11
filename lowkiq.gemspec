@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name          = "lowkiq"
   spec.version       = Lowkiq::VERSION
   spec.authors       = ["Mikhail Kuzmin"]
-  spec.email         = ["Mihail.Kuzmin@bia-tech.ru"]
+  spec.email         = ["m.kuzmin@darkleaf.ru"]
 
   spec.summary       = %q{Lowkiq}
   spec.description   = %q{Lowkiq}

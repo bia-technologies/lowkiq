@@ -139,5 +139,5 @@ TIN/ 7810385714
 RRC/ 781001001
 
 Name and email address of the representative:<br>
-Mikhail Kuzmin<br>
-Mihail.Kuzmin@bia-tech.ru<br>
+Sergey Staskov<br>
+Sergey.Staskov@bia-tech.ru<br>
