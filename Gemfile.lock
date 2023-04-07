@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    lowkiq (1.2.1)
+    lowkiq (1.2.2)
       connection_pool (~> 2.2, >= 2.2.2)
       rack (>= 1.5.0)
       redis (>= 4.0.1, < 5)
@@ -52,4 +52,4 @@ DEPENDENCIES
   rspec-mocks (~> 3.8)
 
 BUNDLED WITH
-   2.2.22
+   2.4.10
