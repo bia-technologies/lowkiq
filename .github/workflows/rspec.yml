@@ -27,6 +27,6 @@ jobs:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: true
       - name: Run Rspec
-        run: rspec
+        run: bundle exec rspec
         env:
           REDIS_URL: redis:6379
