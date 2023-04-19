@@ -1,0 +1,34 @@
+name: Rspec
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  Rspec:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version:
+          - "2.6"
+          - "2.7"
+          - "3.0"
+          - "3.1"
+          #- "3.2"
+    services:
+      redis:
+        image: redis:6.0
+        ports:
+          - 6379:6379
+    steps:
+      - name: Checkout action
+        uses: actions/checkout@v3
+      - name: Ruby setup
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+      - name: Run Rspec
+        run: bundle exec rspec
+        env:
+          REDIS_URL: redis:6379
