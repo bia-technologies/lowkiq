@@ -56,18 +56,3 @@ jobs:
           touch $HOME/.gem/credentials
           chmod 0600 $HOME/.gem/credentials
           gem build lowkiq.gemspec
-      - name: Publish to GPR
-        run: |
-          printf -- "---\n:github: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
-          gem build lowkiq.gemspec
-          gem push --KEY github --host https://rubygems.pkg.github.com/${OWNER} lowkiq.gem
-        env:
-          GEM_HOST_API_KEY: "Bearer ${{secrets.GITHUB_TOKEN}}"
-          OWNER: ${{ github.repository_owner }}
-      - name: Publish to RubyGems
-        run: |
-          printf -- "---\n:rubygems_api_key: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
-          gem build lowkiq.gemspec
-          gem push lowkiq.gem
-        env:
-          GEM_HOST_API_KEY: "${{secrets.RUBYGEMS_AUTH_TOKEN}}"
