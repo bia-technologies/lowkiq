@@ -8,6 +8,7 @@ jobs:
   check_files:
     # Declare outputs for next jobs
     name: Check VERSION
+    runs-on: ubuntu-latest
     outputs:
       version_changed: ${{ steps.check_version.outputs.version_changed }}
     steps:
