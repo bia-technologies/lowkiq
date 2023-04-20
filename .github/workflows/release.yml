@@ -46,6 +46,7 @@ jobs:
           npm run build --if-present
       - name: Create .gem/credentials
         run: |
+          cd $HOME
           mkdir -p $HOME/.gem
           touch $HOME/.gem/credentials
           chmod 0600 $HOME/.gem/credentials
