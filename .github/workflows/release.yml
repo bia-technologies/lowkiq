@@ -47,10 +47,10 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 2.6
-      - name: Setup up node 14
+      - name: Setup up node 16
         uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: 16
       - name: Build frontend
         run: |
           cd frontend
