@@ -43,8 +43,8 @@ jobs:
         # Auto-increment VERSION only if not updated manually.
         if: steps.check_version.outputs.version-updated != 'True'
         run: |
-          NEXTVERSION=cat VERSION | awk -F. -v OFS=. '{$NF += 1 ; print}'
-          echo NEXTVERSION > VERSION
+          NEXTVERSION=$(awk -F. -v OFS=. '{$NF += 1 ; print}' < VERSION)
+          echo "$NEXTVERSION" > VERSION
       - name: Build frontend
         run: |
           cd frontend
