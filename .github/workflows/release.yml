@@ -33,13 +33,12 @@ jobs:
         run: |
           set -x
           diff=$(git diff --name-only HEAD^ HEAD)
-          SourceDiff=$(echo "$diff" | grep 'VERSION')
-          HasDiff=$(echo "$SourceDiff" | wc -l)
-          if [ "$HasDiff" -gt 0 ]; then
-              echo "version-updated=true" >> "$GITHUB_OUTPUT"
+          if echo "$diff" | grep -q 'VERSION'; then
+              HasDiff=true
           else
-              echo "version-updated=false" >> "$GITHUB_OUTPUT"
+              HasDiff=false
           fi
+          echo "version-updated=$HasDiff" >> "$GITHUB_OUTPUT"
       - name: Update version
         # Auto-increment VERSION only if not updated manually.
         if: steps.check_version.outputs.version-updated != 'True'
