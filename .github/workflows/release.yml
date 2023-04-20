@@ -26,7 +26,6 @@ jobs:
           node-version: 14
       - name: Check version
         id: check_version
-        shell: pwsh
         # Get diff HEAD with the previous commit
         # Check if VERSION file is changed manually
         # And then set the output named "updated"
