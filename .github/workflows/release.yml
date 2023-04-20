@@ -5,26 +5,17 @@ on:
     branches:
       - master
 jobs:
-  Build:
-    name: Build + Publish
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
+  check_files:
+    # Declare outputs for next jobs
+    name: Check VERSION
+    outputs:
+      version_changed: ${{ steps.check_version.outputs.version_changed }}
     steps:
-      - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
+      with:
         # Checkout as many commits as needed for the diff
-        with:
-          fetch-depth: 2
-      - name: Set up Ruby 2.6
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-      - name: Setup up node 14
-        uses: actions/setup-node@v3
-        with:
-          node-version: 14
-      - name: Check version
+        fetch-depth: 2
+    - name: Check version
         id: check_version
         shell: bash
         # Get diff HEAD with the previous commit
@@ -38,13 +29,27 @@ jobs:
           else
               HasDiff=false
           fi
-          echo "version-updated=$HasDiff" >> "$GITHUB_OUTPUT"
-      - name: Update version
-        # Auto-increment VERSION only if not updated manually.
-        if: steps.check_version.outputs.version-updated != 'True'
-        run: |
-          NEXTVERSION=$(awk -F. -v OFS=. '{$NF += 1 ; print}' < VERSION)
-          echo "$NEXTVERSION" > VERSION
+          echo "version_changed=$HasDiff" >> "$GITHUB_OUTPUT"
+
+  # Run the job only when version file is updated
+  build:
+    name: Build + Publish
+    needs: [ check_files ]
+    if: needs.check_files.outputs.version_changed == 'True'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Ruby 2.6
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+      - name: Setup up node 14
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14
       - name: Build frontend
         run: |
           cd frontend
