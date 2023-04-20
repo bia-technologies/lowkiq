@@ -39,7 +39,6 @@ jobs:
           Write-Host "version-updated=$HasDiff" >> $GITHUB_OUTPUT
       - name: Update version
         # Auto-increment VERSION only if not updated manually.
-        shell: pwsh
         if: steps.check_version.outputs.version-updated != 'True'
         run: |
           NEXTVERSION=cat $HOME/VERSION | awk -F. -v OFS=. '{$NF += 1 ; print}'
