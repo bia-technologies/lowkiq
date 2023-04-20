@@ -31,12 +31,14 @@ jobs:
         # Check if VERSION file is changed manually
         # And then set the output named "updated"
         run: |
-          $diff = git diff --name-only HEAD^ HEAD
-
-          $SourceDiff = $diff | Where-Object { $_ -match 'VERSION' }
-          $HasDiff = $SourceDiff.Length -gt 0
-
-          Write-Host "version-updated=$HasDiff" >> $GITHUB_OUTPUT
+          diff=$(git diff --name-only HEAD^ HEAD)
+          SourceDiff=$(echo "$diff" | grep 'VERSION')
+          HasDiff=$(echo "$SourceDiff" | wc -l)
+          if [ "$HasDiff" -gt 0 ]; then
+              echo "version-updated=true" >> "$GITHUB_OUTPUT"
+          else
+              echo "version-updated=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Update version
         # Auto-increment VERSION only if not updated manually.
         if: steps.check_version.outputs.version-updated != 'True'
@@ -45,12 +47,11 @@ jobs:
           printf NEXTVERSION > $HOME/VERSION
       - name: Build frontend
         run: |
-          cd $HOME/frontend
+          cd frontend
           npm install
           npm run build --if-present
       - name: Create .gem/credentials
         run: |
-          cd $HOME
           mkdir -p $HOME/.gem
           touch $HOME/.gem/credentials
           chmod 0600 $HOME/.gem/credentials
