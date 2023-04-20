@@ -13,6 +13,9 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v3
+       with:
+        # Checkout as many commits as needed for the diff
+        fetch-depth: 2
       - name: Set up Ruby 2.6
         uses: ruby/setup-ruby@v1
         with:
@@ -28,7 +31,7 @@ jobs:
         # Check if VERSION file is changed manually
         # And then set the output named "updated"
         run: |
-          $diff = git diff --name-only HEAD\^ HEAD
+          $diff = git diff --name-only HEAD^ HEAD
 
           $SourceDiff = $diff | Where-Object { $_ -match 'VERSION' }
           $HasDiff = $SourceDiff.Length -gt 0
