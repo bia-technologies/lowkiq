@@ -1,3 +1,3 @@
 module Lowkiq
-  VERSION = "1.2.2"
+  VERSION = File.read(File.expand_path("VERSION", __dir__)).strip
 end

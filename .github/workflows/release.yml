@@ -1,0 +1,67 @@
+name: Release
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+jobs:
+  Build:
+    name: Build + Publish
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Ruby 2.6
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+      - name: Setup up node 14
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14
+      - name: Check version
+        id: check_version
+        # Get diff HEAD with the previous commit
+        # Check if VERSION file is changed manually
+        # And then set the output named "updated"
+        run: |
+          $diff = git diff --name-only HEAD^ HEAD
+
+          $SourceDiff = $diff | Where-Object { $_ -match 'VERSION' }
+          $HasDiff = $SourceDiff.Length -gt 0
+
+          Write-Host "::set-output name=updated::$HasDiff"
+      - name: Update version
+        # Auto-increment VERSION only if not updated manually.
+        if: steps.check_version.outputs.updated != 'True'
+        run: |
+          NEXTVERSION=cat $HOME/VERSION | awk -F. -v OFS=. '{$NF += 1 ; print}'
+          printf NEXTVERSION > $HOME/VERSION
+      - name: Build frontend
+        run: |
+          cd $HOME/frontend
+          npm install
+          npm run build --if-present
+      - name: Create .gem/credentials
+        run: |
+          cd $HOME
+          mkdir -p $HOME/.gem
+          touch $HOME/.gem/credentials
+          chmod 0600 $HOME/.gem/credentials
+      - name: Publish to GPR
+        run: |
+          printf -- "---\n:github: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
+          gem build lowkiq.gemspec
+          gem push --KEY github --host https://rubygems.pkg.github.com/${OWNER} lowkiq.gem
+        env:
+          GEM_HOST_API_KEY: "Bearer ${{secrets.GITHUB_TOKEN}}"
+          OWNER: ${{ github.repository_owner }}
+      - name: Publish to RubyGems
+        run: |
+          printf -- "---\n:rubygems_api_key: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
+          gem build lowkiq.gemspec
+          gem push lowkiq.gem
+        env:
+          GEM_HOST_API_KEY: "${{secrets.RUBYGEMS_AUTH_TOKEN}}"
