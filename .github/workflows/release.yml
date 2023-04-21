@@ -1,42 +1,11 @@
 name: Release
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - master
+    tags:
+      - '*'
 jobs:
-  check_files:
-    # Declare outputs for next jobs
-    name: Check VERSION
-    runs-on: ubuntu-latest
-    outputs:
-      version_changed: ${{ steps.check_version.outputs.version_changed }}
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        # Checkout as many commits as needed for the diff
-        fetch-depth: 2
-    - name: Check version
-      id: check_version
-      shell: bash
-      # Get diff HEAD with the previous commit
-      # Check if VERSION file is changed manually
-      # And then set the output named "updated"
-      run: |
-        set -x
-        diff=$(git diff --name-only HEAD^ HEAD)
-        if echo "$diff" | grep -q 'VERSION'; then
-            HasDiff=true
-        else
-            HasDiff=false
-        fi
-        echo "version_changed=$HasDiff" >> "$GITHUB_OUTPUT"
-
-  # Run the job only when VERSION file is updated
   build:
     name: Build + Publish
-    needs: [ check_files ]
-    if: needs.check_files.outputs.version_changed == 'True'
     runs-on: ubuntu-latest
     permissions:
       packages: write
