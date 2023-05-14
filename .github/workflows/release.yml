@@ -2,10 +2,13 @@ name: Release
 on:
   push:
     tags:
-      - '*'
+      - '*' # trigger the Release workflow on tag creation
 jobs:
+  rspec:
+    uses: ./.github/workflows/rspec.yml
   build:
     name: Build + Publish
+    needs: [rspec]  # require rspec to pass before build runs
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -25,6 +28,7 @@ jobs:
           cd frontend
           npm install
           npm run build --if-present
+          cp -r ./* ../assets
       - name: Create .gem/credentials
         run: |
           mkdir -p $HOME/.gem

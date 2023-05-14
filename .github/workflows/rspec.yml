@@ -4,6 +4,7 @@ on:
     branches:
       - master
   pull_request:
+  workflow_call:  # allow this workflow to be called from other workflows
 jobs:
   Rspec:
     runs-on: ubuntu-latest

@@ -6,7 +6,7 @@ module.exports = {
   entry: './src/main.js',
   output: {
     filename: 'app.js',
-    path: path.resolve(__dirname, '../assets')
+    path: path.resolve(__dirname, 'build')
   },
   devtool: false,
   resolve: {
