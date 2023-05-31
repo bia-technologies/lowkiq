@@ -1,5 +1,6 @@
 name: Release
 on:
+  workflow_dispatch: # trigger the Release workflow manually
   push:
     tags:
       - '*' # trigger the Release workflow on tag creation
@@ -15,37 +16,44 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Ruby 2.6
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 2.6
+
       - name: Setup up node 14
         uses: actions/setup-node@v3
         with:
           node-version: 14
+
       - name: Build frontend
         run: |
           cd frontend
           npm install
           npm run build --if-present
-          cp -r ./* ../assets
+          mkdir ../assets
+          cp -r ./build/* ../assets
+
       - name: Create .gem/credentials
         run: |
           mkdir -p $HOME/.gem
           touch $HOME/.gem/credentials
           chmod 0600 $HOME/.gem/credentials
+
       - name: Publish to GPR
         run: |
-          printf -- "---\n:github: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
+          printf -- "---\n:github: ${GITHUB_AUTH_TOKEN}\n" > $HOME/.gem/credentials
           gem build lowkiq.gemspec
-          gem push --KEY github --host https://rubygems.pkg.github.com/${OWNER} lowkiq.gem
+          gem push --KEY github --host https://rubygems.pkg.github.com/${OWNER} lowkiq-*.gem
         env:
-          GEM_HOST_API_KEY: "Bearer ${{secrets.GITHUB_TOKEN}}"
+          GITHUB_AUTH_TOKEN: "Bearer ${{secrets.GPR_AUTH_TOKEN}}"
           OWNER: ${{ github.repository_owner }}
+
       - name: Publish to RubyGems
         run: |
-          printf -- "---\n:rubygems_api_key: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
+          printf -- "---\n:rubygems_api_key: ${RUBYGEMS_AUTH_TOKEN}\n" > $HOME/.gem/credentials
           gem build lowkiq.gemspec
-          gem push lowkiq.gem
+          gem push lowkiq-*.gem
         env:
-          GEM_HOST_API_KEY: "${{secrets.RUBYGEMS_AUTH_TOKEN}}"
+          RUBYGEMS_AUTH_TOKEN: "${{secrets.RUBYGEMS_API_KEY}}"
