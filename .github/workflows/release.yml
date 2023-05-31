@@ -35,25 +35,24 @@ jobs:
           mkdir ../assets
           cp -r ./build/* ../assets
 
-      - name: Create .gem/credentials
-        run: |
-          mkdir -p $HOME/.gem
-          touch $HOME/.gem/credentials
-          chmod 0600 $HOME/.gem/credentials
+          - name: Configure credentials
+          run: |
+            mkdir -p $HOME/.gem
+            touch $HOME/.gem/credentials
+            chmod 0600 $HOME/.gem/credentials
+            echo -e ":rubygems_api_key: ${GEM_HOST_API_KEY}" > $HOME/.gem/credentials
+            echo -e ":github: ${RUBYGEMS_API_KEY}" > $HOME/.gem/credentials
+          env:
+            GEM_HOST_API_KEY: "Bearer ${{secrets.GPR_TOKEN}}"
+            RUBYGEMS_API_KEY: "${{secrets.RUBYGEMS_AUTH_TOKEN}}"
 
-      - name: Publish to GPR
-        run: |
-          printf -- "---\n:github: ${GITHUB_AUTH_TOKEN}\n" > $HOME/.gem/credentials
-          gem build lowkiq.gemspec
-          gem push --KEY github --host https://rubygems.pkg.github.com/${OWNER} lowkiq-*.gem
-        env:
-          GITHUB_AUTH_TOKEN: "Bearer ${{secrets.GPR_AUTH_TOKEN}}"
-          OWNER: ${{ github.repository_owner }}
+          - name: Build gem
+            run: |
+              gem build *.gemspec
 
-      - name: Publish to RubyGems
-        run: |
-          printf -- "---\n:rubygems_api_key: ${RUBYGEMS_AUTH_TOKEN}\n" > $HOME/.gem/credentials
-          gem build lowkiq.gemspec
-          gem push lowkiq-*.gem
-        env:
-          RUBYGEMS_AUTH_TOKEN: "${{secrets.RUBYGEMS_API_KEY}}"
+          - name: Publish to GPR & RubyGems
+            run: |
+              gem push --KEY github --host https://rubygems.pkg.github.com/${OWNER} *.gem
+              gem push *.gem --host https://rubygems.org
+            env:
+              OWNER: ${{ github.repository_owner }}
