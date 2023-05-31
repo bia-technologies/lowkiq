@@ -43,7 +43,7 @@ jobs:
           echo -e ":rubygems_api_key: ${GEM_HOST_API_KEY}" > $HOME/.gem/credentials
           echo -e ":github: ${RUBYGEMS_API_KEY}" > $HOME/.gem/credentials
         env:
-          GEM_HOST_API_KEY: "Bearer ${{secrets.GPR_TOKEN}}"
+          GEM_HOST_API_KEY: "Bearer ${{secrets.GITHUB_TOKEN}}"
           RUBYGEMS_API_KEY: "${{secrets.RUBYGEMS_AUTH_TOKEN}}"
 
       - name: Build gem
