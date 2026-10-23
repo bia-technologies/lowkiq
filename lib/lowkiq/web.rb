@@ -18,7 +18,7 @@ module Lowkiq
             <script type="text/javascript">
               window.lowkiqRoot="#{root_path}";
             </script>
-            <script type="text/javascript" src="/assets/lowkiq/app.js"></script>
+            <script type="text/javascript" src="#{root_path}/assets/#{VERSION}/app.js"></script>
           </body>
         </html>
       HTML
