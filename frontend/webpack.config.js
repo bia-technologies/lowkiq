@@ -6,7 +6,7 @@ module.exports = {
   entry: './src/main.js',
   output: {
     filename: 'app.js',
-    path: path.resolve(__dirname, 'build')
+    path: path.resolve(__dirname, '../assets')
   },
   devtool: false,
   resolve: {
@@ -43,7 +43,10 @@ module.exports = {
             ]
           }
         }, {
-          loader: 'sass-loader'
+          loader: 'sass-loader',
+          options: {
+            implementation: require('sass')
+          }
         }]
       }, {
         test: /\.module\.css$/,
