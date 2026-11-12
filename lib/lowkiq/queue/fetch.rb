@@ -6,12 +6,12 @@ module Lowkiq
       end
 
       def fetch(redis, strategy, ids)
-        resp = redis.public_send strategy do
+        resp = redis.public_send strategy do |pipe|
           ids.each do |id|
-            redis.zscore @keys.all_ids_scored_by_perform_in_zset, id
-            redis.zscore @keys.all_ids_scored_by_retry_count_zset, id
-            redis.zrange @keys.payloads_zset(id), 0, -1, with_scores: true
-            redis.hget   @keys.errors_hash, id
+            pipe.zscore @keys.all_ids_scored_by_perform_in_zset, id
+            pipe.zscore @keys.all_ids_scored_by_retry_count_zset, id
+            pipe.zrange @keys.payloads_zset(id), 0, -1, with_scores: true
+            pipe.hget   @keys.errors_hash, id
           end
         end
 
@@ -28,11 +28,11 @@ module Lowkiq
       end
 
       def morgue_fetch(redis, strategy, ids)
-        resp = redis.public_send strategy do
+        resp = redis.public_send strategy do |pipe|
           ids.each do |id|
-            redis.zscore @keys.morgue_all_ids_scored_by_updated_at_zset, id
-            redis.zrange @keys.morgue_payloads_zset(id), 0, -1, with_scores: true
-            redis.hget   @keys.morgue_errors_hash, id
+            pipe.zscore @keys.morgue_all_ids_scored_by_updated_at_zset, id
+            pipe.zrange @keys.morgue_payloads_zset(id), 0, -1, with_scores: true
+            pipe.hget   @keys.morgue_errors_hash, id
           end
         end
 
