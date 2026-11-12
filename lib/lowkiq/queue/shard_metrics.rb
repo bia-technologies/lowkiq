@@ -8,8 +8,8 @@ module Lowkiq
 
       def call(queues)
         result = @redis_pool.with do |redis|
-          redis.pipelined do
-            queues.each { |queue| pipeline redis, queue }
+          redis.pipelined do |pipe|
+            queues.each { |queue| pipeline pipe, queue }
           end
         end
 
@@ -20,15 +20,15 @@ module Lowkiq
 
       private
 
-      def pipeline(redis, id)
+      def pipeline(pipe, id)
         name = id[:queue_name]
         shard = id[:shard]
 
         keys = Keys.new name
 
         # lag [id, score]
-        redis.zrange keys.ids_scored_by_perform_in_zset(shard),
-                     0, 0, with_scores: true
+        pipe.zrange keys.ids_scored_by_perform_in_zset(shard),
+                    0, 0, with_scores: true
       end
 
       def pipeline_count
